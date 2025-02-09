@@ -10,6 +10,7 @@ python = "^3.11"
 pandas = "^2.2.3"
 transformers = "^4.48.2"
 torch = {version = "2.5.1", source = "torch-cuda121"}
+scikit-learn = "^1.6.1"
 
 
 [tool.poetry.group.dev.dependencies]
