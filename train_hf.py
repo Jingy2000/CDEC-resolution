@@ -23,17 +23,17 @@ torch._dynamo.config.suppress_errors = True
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train CDEC Resolution Model with HuggingFace Trainer')
+    parser.add_argument('--model_type', type=str, choices=['encoder', 'decoder'], help='Type of model to train, either encoder or decoder')
     parser.add_argument('--data_dir', type=str, default='data', help='Directory containing the data files')
     parser.add_argument('--model_name', type=str, default='answerdotai/ModernBERT-base', help='Name of the pre-trained model')
     parser.add_argument('--output_dir', type=str, default='models', help='Directory to save the model')
     parser.add_argument('--epochs', type=int, default=3, help='Number of training epochs')
     parser.add_argument('--train_batch_size', type=int, default=64, help='Training batch size')
-    parser.add_argument('--eval_batch_size', type=int, default=128, help='Evaluation batch size')
+    parser.add_argument('--eval_batch_size', type=int, default=512, help='Evaluation batch size')
     parser.add_argument('--learning_rate', type=float, default=1e-5, help='Learning rate')
-    parser.add_argument('--warmup_steps', type=int, default=100, help='Number of warmup steps')
+    parser.add_argument('--warmup_steps', type=int, default=500, help='Number of warmup steps')
     parser.add_argument('--weight_decay', type=float, default=0.01, help='Weight decay')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
-    parser.add_argument('--tensorboard_dir', type=str, default='runs', help='Tensorboard log directory')
     return parser.parse_args()
 
 def compute_metrics(eval_pred):
@@ -90,12 +90,11 @@ def main():
     
     # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
-    os.makedirs(args.tensorboard_dir, exist_ok=True)
     
     # Load tokenizer and create datasets
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     train_df, dev_df, test_df = load_data(args.data_dir)
-    train_dataset, eval_dataset, test_dataset = create_datasets(train_df, dev_df, test_df, tokenizer)
+    train_dataset, eval_dataset, test_dataset = create_datasets(train_df, dev_df, test_df, tokenizer, model_type=args.model_type)
     
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
@@ -116,18 +115,18 @@ def main():
         learning_rate=args.learning_rate,
         warmup_steps=args.warmup_steps,
         weight_decay=args.weight_decay,
+        optim="adamw_torch",
         eval_strategy="steps",
-        eval_steps=50,
+        eval_steps=1000,
         save_strategy="steps",
-        save_steps=500,
+        save_steps=1000,
         logging_strategy="steps",
         logging_steps=10,
         load_best_model_at_end=True,
-        metric_for_best_model="f1_class1",  # Changed from "f1" to "f1_class1"
+        metric_for_best_model="f1_class1",
         save_total_limit=2,
         report_to=["tensorboard"],
         logging_first_step=True,
-        logging_dir=args.tensorboard_dir,
         bf16=True,
         bf16_full_eval=True,
         push_to_hub=False,
@@ -143,7 +142,7 @@ def main():
         data_collator=data_collator,
         processing_class=tokenizer,
         callbacks=[
-            EarlyStoppingCallback(early_stopping_patience=2),
+            EarlyStoppingCallback(early_stopping_patience=5),
             PrinterCallback()
         ]
     )

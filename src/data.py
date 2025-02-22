@@ -1,6 +1,7 @@
 import pandas as pd
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 import torch
+import numpy as np
 from transformers import AutoTokenizer
 
 class CDECEncoderDataset(Dataset):
@@ -101,6 +102,9 @@ def load_data(data_dir):
     train_df = pd.read_csv(f"{data_dir}/train_set.csv")
     dev_df = pd.read_csv(f"{data_dir}/dev_set.csv")
     test_df = pd.read_csv(f"{data_dir}/test_set.csv")
+    
+    # oversample train set
+    train_df = pd.concat([train_df[train_df['label'] == 1]] * 3 + [train_df[train_df['label'] == 0]])
     
     return train_df, dev_df, test_df
 
