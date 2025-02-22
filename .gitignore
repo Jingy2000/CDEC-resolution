@@ -173,3 +173,7 @@ cython_debug/
 
 # Mac OS
 .DS_Store
+
+# tensorboard
+runs/
+models/
