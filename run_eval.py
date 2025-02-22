@@ -42,14 +42,6 @@ def evaluate_model(model, data_loader, device):
     
     return np.array(all_predictions), np.array(all_labels), np.array(all_probs)
 
-def plot_confusion_matrix(cm, save_path):
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-    plt.title('Confusion Matrix')
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
-    plt.savefig(save_path)
-    plt.close()
 
 def main():
     args = parse_args()
@@ -114,9 +106,6 @@ def main():
     results_file = os.path.join(args.output_dir, f'evaluation_results_{timestamp}.json')
     cm_plot_file = os.path.join(args.output_dir, f'confusion_matrix_{timestamp}.png')
     
-    # Save confusion matrix plot
-    plot_confusion_matrix(cm, cm_plot_file)
-    
     # Save results to JSON
     with open(results_file, 'w') as f:
         json.dump(results, f, indent=4)
@@ -127,7 +116,6 @@ def main():
     print("\nMetrics for Coreferent class (label 1):")
     print(f"classification_report:\n{report}")
     print(f"\nResults saved to: {results_file}")
-    print(f"Confusion matrix plot saved to: {cm_plot_file}")
     print("=" * 30)
 
 if __name__ == "__main__":
