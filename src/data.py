@@ -25,9 +25,12 @@ class CDECEncoderDataset(Dataset):
         trigger2 = self.data.iloc[idx]['e2_trigger']
         label = self.data.iloc[idx]['label']
         
+        s1 = f"First sentence: {sentence1}\nEvent trigger: {trigger1}"
+        s2 = f"Second sentence: {sentence2}\nEvent trigger: {trigger2}"
+        
         encoding = self.tokenizer.encode_plus(
-            text=sentence1,
-            text_pair=sentence2,
+            text=s1,
+            text_pair=s2,
             add_special_tokens=True,
             max_length=self.max_len,
             padding='max_length',
