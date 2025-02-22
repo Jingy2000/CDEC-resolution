@@ -18,7 +18,7 @@ class PrinterCallback(TrainerCallback):
         print(f"\nEpoch {state.epoch}/{args.num_train_epochs:.0f}")
         
     def on_epoch_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
-        print(f"\nEpoch {state.epoch} completed. Current loss: {state.log_history[-1]['loss']:.4f}")
+        print(f"\nEpoch {state.epoch} completed. Current loss: {state.log_history[-1]}")
         
     def on_train_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
         print("\n=== Training completed at {} ===".format(
