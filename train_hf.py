@@ -142,7 +142,6 @@ def main():
         data_collator=data_collator,
         processing_class=tokenizer,
         callbacks=[
-            EarlyStoppingCallback(early_stopping_patience=5),
             PrinterCallback()
         ]
     )

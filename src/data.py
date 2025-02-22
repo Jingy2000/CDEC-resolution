@@ -67,7 +67,7 @@ class CDECDecoderDataset(Dataset):
             f"Event trigger in first sentence: {trigger1}\n"
             f"Second sentence: {sentence2}\n"
             f"Event trigger in second sentence: {trigger2}\n"
-            f"Question: Do the event triggers '{trigger1}' and '{trigger2}' refer to the same event? Answer with Yes or No\n"
+            f"Question: Do the event triggers '{trigger1}' and '{trigger2}' refer to the same event? Answer with Yes or No.\n"
             f"Answer:"
         )
         
@@ -122,6 +122,15 @@ def create_datasets(train_df, dev_df, test_df, tokenizer, model_type='encoder'):
     
     return train_dataset, dev_dataset, test_dataset
 
+def create_single_dataloader(df, tokenizer, model_type='encoder', batch_size=32, shuffle=False):
+    """Create a single dataloader for evaluation"""
+    if df is None:
+        return None
+    
+    dataset_class = CDECEncoderDataset if model_type == 'encoder' else CDECDecoderDataset
+    dataset = dataset_class(df, tokenizer)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+
 def create_data_loaders(train_df, dev_df, test_df, tokenizer, model_type='encoder', 
                        train_batch_size=64, eval_batch_size=128):
     """
@@ -129,12 +138,16 @@ def create_data_loaders(train_df, dev_df, test_df, tokenizer, model_type='encode
     Args:
         model_type: 'encoder' for BERT-like or 'decoder' for Qwen-like models
     """
-    train_dataset, dev_dataset, test_dataset = create_datasets(
-        train_df, dev_df, test_df, tokenizer, model_type
-    )
-
-    train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=True)
-    dev_loader = DataLoader(dev_dataset, batch_size=eval_batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=eval_batch_size, shuffle=False)
+    train_loader = create_single_dataloader(
+        train_df, tokenizer, model_type, train_batch_size, shuffle=True
+    ) if train_df is not None else None
+    
+    dev_loader = create_single_dataloader(
+        dev_df, tokenizer, model_type, eval_batch_size, shuffle=False
+    ) if dev_df is not None else None
+    
+    test_loader = create_single_dataloader(
+        test_df, tokenizer, model_type, eval_batch_size, shuffle=False
+    ) if test_df is not None else None
 
     return train_loader, dev_loader, test_loader
