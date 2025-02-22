@@ -116,6 +116,7 @@ def main():
         warmup_steps=args.warmup_steps,
         weight_decay=args.weight_decay,
         optim="adamw_torch",
+        lr_scheduler_type="cosine",
         eval_strategy="steps",
         eval_steps=1000,
         save_strategy="steps",
@@ -124,7 +125,7 @@ def main():
         logging_steps=10,
         load_best_model_at_end=True,
         metric_for_best_model="f1_class1",
-        save_total_limit=2,
+        save_total_limit=3,
         report_to=["tensorboard"],
         logging_first_step=True,
         bf16=True,
@@ -154,14 +155,6 @@ def main():
     print(f"Runtime: {train_result.metrics['train_runtime']:.2f}s")
     print(f"Samples/second: {train_result.metrics['train_samples_per_second']:.2f}")
     print(f"Final loss: {train_result.metrics['train_loss']:.4f}")
-    
-    # Evaluate on dev set
-    eval_results = trainer.evaluate(eval_dataset, metric_key_prefix="eval")
-    print("\nEvaluation Results:", eval_results)
-
-    # Evaluate on test set
-    test_results = trainer.evaluate(test_dataset, metric_key_prefix="test")
-    print("\nTest Results:", test_results)
 
     # Save the final model
     trainer.save_model(os.path.join(args.output_dir, "final_model"))
