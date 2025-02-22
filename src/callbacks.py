@@ -1,23 +1,7 @@
 from transformers import TrainerCallback
 from transformers.trainer_callback import TrainerControl, TrainerState
 from transformers.training_args import TrainingArguments
-import wandb
-from typing import Dict
 import datetime
-from tqdm import tqdm
-
-class CustomWandbCallback(TrainerCallback):
-    """Custom Weights & Biases callback for detailed logging"""
-    
-    def on_train_begin(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
-        if state.is_world_process_zero:
-            wandb.run.log_code(".")
-            
-    def on_log(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, logs: Dict = None, **kwargs):
-        if state.is_world_process_zero and logs is not None:
-            for k, v in logs.items():
-                if isinstance(v, (int, float)):
-                    wandb.log({k: v}, step=state.global_step)
 
 class PrinterCallback(TrainerCallback):
     """Custom callback for prettier console logging"""

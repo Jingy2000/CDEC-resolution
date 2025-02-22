@@ -12,8 +12,7 @@ from src.data import load_data, create_datasets
 from src.utils import set_seed
 import evaluate
 import numpy as np
-import wandb
-from src.callbacks import CustomWandbCallback, PrinterCallback
+from src.callbacks import PrinterCallback
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train CDEC Resolution Model with HuggingFace Trainer')
@@ -27,8 +26,7 @@ def parse_args():
     parser.add_argument('--warmup_steps', type=int, default=500, help='Number of warmup steps')
     parser.add_argument('--weight_decay', type=float, default=0.01, help='Weight decay')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
-    parser.add_argument('--wandb_project', type=str, default='cdec-resolution', help='Weights & Biases project name')
-    parser.add_argument('--wandb_run_name', type=str, default=None, help='Weights & Biases run name')
+    parser.add_argument('--tensorboard_dir', type=str, default='runs', help='Tensorboard log directory')
     return parser.parse_args()
 
 def compute_metrics(eval_pred):
@@ -56,15 +54,9 @@ def main():
     args = parse_args()
     set_seed(args.seed)
     
-    # Initialize wandb
-    wandb.init(
-        project=args.wandb_project,
-        name=args.wandb_run_name,
-        config=vars(args)
-    )
-    
     # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(args.tensorboard_dir, exist_ok=True)
     
     # Load tokenizer and create datasets
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
@@ -78,7 +70,7 @@ def main():
         num_labels=2
     )
 
-    # Define training arguments with additional logging
+    # Define training arguments with tensorboard logging
     training_args = TrainingArguments(
         output_dir=args.output_dir,
         num_train_epochs=args.epochs,
@@ -95,10 +87,10 @@ def main():
         load_best_model_at_end=True,
         metric_for_best_model="f1",
         save_total_limit=2,
-        report_to=["wandb", "tensorboard"],
+        report_to=["tensorboard"],
         # Additional arguments for better logging
         logging_first_step=True,
-        logging_dir=os.path.join(args.output_dir, 'logs'),
+        logging_dir=args.tensorboard_dir,
         dataloader_num_workers=4,
         group_by_length=True,  # Reduces padding, speeds up training
         fp16=True  # Use mixed precision training
@@ -113,7 +105,6 @@ def main():
         compute_metrics=compute_metrics,
         callbacks=[
             EarlyStoppingCallback(early_stopping_patience=2),
-            CustomWandbCallback(),
             PrinterCallback()
         ]
     )
@@ -121,23 +112,18 @@ def main():
     # Train the model
     train_result = trainer.train()
     
-    # Log final metrics
-    wandb.log({
-        "train_runtime": train_result.metrics["train_runtime"],
-        "train_samples_per_second": train_result.metrics["train_samples_per_second"],
-        "train_loss": train_result.metrics["train_loss"],
-    })
+    # Print final metrics
+    print("\nTraining completed:")
+    print(f"Runtime: {train_result.metrics['train_runtime']:.2f}s")
+    print(f"Samples/second: {train_result.metrics['train_samples_per_second']:.2f}")
+    print(f"Final loss: {train_result.metrics['train_loss']:.4f}")
 
     # Evaluate on test set
     test_results = trainer.evaluate(test_dataset, metric_key_prefix="test")
     print("\nTest Results:", test_results)
-    wandb.log({"test_" + k: v for k, v in test_results.items()})
 
     # Save the final model
     trainer.save_model(os.path.join(args.output_dir, "final_model"))
-    
-    # Close wandb run
-    wandb.finish()
 
 if __name__ == "__main__":
     main()
