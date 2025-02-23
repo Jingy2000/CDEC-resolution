@@ -9,8 +9,8 @@ from transformers import (
     Trainer,
     EarlyStoppingCallback
 )
-from src.data import load_data, create_datasets
-from src.utils import set_seed
+from src.data_bert import create_bert_datasets
+from src.utils import set_seed, load_data_to_df
 import evaluate
 import numpy as np
 from src.callbacks import PrinterCallback
@@ -23,7 +23,6 @@ torch._dynamo.config.suppress_errors = True
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train CDEC Resolution Model with HuggingFace Trainer')
-    parser.add_argument('--model_type', type=str, choices=['encoder', 'decoder'], help='Type of model to train, either encoder or decoder')
     parser.add_argument('--data_dir', type=str, default='data', help='Directory containing the data files')
     parser.add_argument('--model_name', type=str, default='answerdotai/ModernBERT-base', help='Name of the pre-trained model')
     parser.add_argument('--output_dir', type=str, default='models', help='Directory to save the model')
@@ -93,8 +92,8 @@ def main():
     
     # Load tokenizer and create datasets
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-    train_df, dev_df, test_df = load_data(args.data_dir)
-    train_dataset, eval_dataset, test_dataset = create_datasets(train_df, dev_df, test_df, tokenizer, model_type=args.model_type)
+    train_df, dev_df, test_df = load_data_to_df(args.data_dir)
+    train_dataset, eval_dataset, test_dataset = create_bert_datasets(train_df, dev_df, test_df, tokenizer)
     
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 

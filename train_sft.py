@@ -1,0 +1,90 @@
+import torch
+from transformers import TrainingArguments
+from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
+import argparse
+from src.data_bert import load_data_to_df, create_datasets, create_llm_datasets
+from src.utils import set_seed
+from src.callbacks import PrinterCallback
+from unsloth import FastLanguageModel
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model_name', type=str, default="unsloth/Qwen2.5-0.5B-Instruct")
+    parser.add_argument('--data_dir', type=str, default="data")
+    parser.add_argument('--output_dir', type=str, default="checkpoints/decoder")
+    parser.add_argument('--max_length', type=int, default=300)
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--gradient_accumulation_steps', type=int, default=4)
+    parser.add_argument('--num_epochs', type=int, default=3)
+    parser.add_argument('--learning_rate', type=float, default=1e-5)
+    parser.add_argument('--warmup_steps', type=int, default=1000, help='Number of warmup steps')
+    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--eval_steps', type=int, default=500)
+    parser.add_argument('--save_steps', type=int, default=500)
+    parser.add_argument('--logging_steps', type=int, default=100)
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+    set_seed(args.seed)
+    
+    # Load tokenizer and model using Unsloth
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name=args.model_name,
+        max_seq_length=args.max_length,
+        dtype=None,
+        load_in_4bit=False,
+    )
+    
+    # Load and prepare data
+    train_df, dev_df, test_df = load_data_to_df(args.data_dir)
+    train_dataset, dev_dataset, test_dataset = create_llm_datasets(train_df, dev_df, test_df)
+    
+    # Create data collator for completion-only language modeling
+    collator = DataCollatorForCompletionOnlyLM(
+        response_template="<|im_start|>assistant\n",
+        tokenizer=tokenizer,
+    )
+    
+    # Training arguments
+    training_args = TrainingArguments(
+        output_dir=args.output_dir,
+        num_train_epochs=args.num_epochs,
+        per_device_train_batch_size=args.batch_size,
+        per_device_eval_batch_size=args.batch_size * 2,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        learning_rate=args.learning_rate,
+        warmup_steps=args.warmup_steps,
+        weight_decay=0.01,
+        optim="adamw_torch",
+        lr_scheduler_type="cosine",
+        evaluation_strategy="steps",
+        logging_strategy="steps",
+        save_strategy="steps",
+        eval_steps=args.eval_steps,
+        save_steps=args.save_steps,
+        logging_steps=args.logging_steps,
+        save_total_limit=3,
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_loss",
+        remove_unused_columns=False,
+    )
+    
+    # Initialize trainer
+    trainer = SFTTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=dev_dataset,
+        data_collator=collator,
+        callbacks=[PrinterCallback],
+    )
+    
+    # Train
+    trainer.train()
+    
+    # Save final model
+    trainer.save_model(f"{args.output_dir}/final")
+    
+if __name__ == "__main__":
+    main()
