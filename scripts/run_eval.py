@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from sklearn.metrics import classification_report, confusion_matrix
-from src.data import create_data_loaders
+from src.data_bert import create_data_loaders
 import json
 from tqdm import tqdm
 import seaborn as sns
@@ -53,8 +53,8 @@ def main():
     model = model.to(device)
     
     # Load test data
-    from src.data import load_data, create_single_dataloader
-    _, _, test_df = load_data(args.data_dir)
+    from src.data_bert import load_data_to_df, create_single_dataloader
+    _, _, test_df = load_data_to_df(args.data_dir)
     test_loader = create_single_dataloader(
         test_df, 
         tokenizer=tokenizer,

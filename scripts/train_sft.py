@@ -1,9 +1,7 @@
-import torch
-from transformers import TrainingArguments
-from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
+from trl import SFTTrainer, DataCollatorForCompletionOnlyLM, SFTConfig
 import argparse
-from src.data_bert import load_data_to_df, create_datasets, create_llm_datasets
-from src.utils import set_seed
+from src.data_sft import create_llm_datasets
+from src.utils import set_seed, load_data_to_df
 from src.callbacks import PrinterCallback
 from unsloth import FastLanguageModel
 
@@ -38,7 +36,7 @@ def main():
     
     # Load and prepare data
     train_df, dev_df, test_df = load_data_to_df(args.data_dir)
-    train_dataset, dev_dataset, test_dataset = create_llm_datasets(train_df, dev_df, test_df)
+    train_dataset, dev_dataset, test_dataset = create_llm_datasets(train_df, dev_df, test_df, tokenizer)
     
     # Create data collator for completion-only language modeling
     collator = DataCollatorForCompletionOnlyLM(
@@ -47,7 +45,7 @@ def main():
     )
     
     # Training arguments
-    training_args = TrainingArguments(
+    training_args = SFTConfig(
         output_dir=args.output_dir,
         num_train_epochs=args.num_epochs,
         per_device_train_batch_size=args.batch_size,
@@ -68,6 +66,8 @@ def main():
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
         remove_unused_columns=False,
+        packing = False, # Can make training 5x faster for short sequences.
+
     )
     
     # Initialize trainer
