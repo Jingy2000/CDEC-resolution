@@ -30,8 +30,8 @@ def parse_args():
     parser.add_argument('--epochs', type=int, default=3, help='Number of training epochs')
     parser.add_argument('--train_batch_size', type=int, default=64, help='Training batch size')
     parser.add_argument('--eval_batch_size', type=int, default=512, help='Evaluation batch size')
-    parser.add_argument('--learning_rate', type=float, default=1e-5, help='Learning rate')
-    parser.add_argument('--warmup_steps', type=int, default=500, help='Number of warmup steps')
+    parser.add_argument('--learning_rate', type=float, default=5e-6, help='Learning rate')
+    parser.add_argument('--warmup_steps', type=int, default=1000, help='Number of warmup steps')
     parser.add_argument('--weight_decay', type=float, default=0.01, help='Weight decay')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     return parser.parse_args()
@@ -118,9 +118,9 @@ def main():
         optim="adamw_torch",
         lr_scheduler_type="cosine",
         eval_strategy="steps",
-        eval_steps=1000,
+        eval_steps=500,
         save_strategy="steps",
-        save_steps=1000,
+        save_steps=500,
         logging_strategy="steps",
         logging_steps=10,
         load_best_model_at_end=True,

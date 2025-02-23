@@ -46,6 +46,7 @@ class CDECEncoderDataset(Dataset):
             'label': torch.tensor(label, dtype=torch.long)
         }
         
+
 class CDECDecoderDataset(Dataset):
     """Dataset for decoder-only models like Qwen / Llama"""
     def __init__(self, df: pd.DataFrame, tokenizer: AutoTokenizer, max_len=512):
@@ -62,39 +63,36 @@ class CDECDecoderDataset(Dataset):
         
         # Create a more informative prompt for event coreference
         prompt = (
-            f"Task: Determine if two event triggers refer to the same event.\n"
+            f"Task: Determine if two event words refer to the same event.\n"
             f"First sentence: {sentence1}\n"
-            f"Event trigger in first sentence: {trigger1}\n"
+            f"Event word in first sentence: {trigger1}\n"
             f"Second sentence: {sentence2}\n"
-            f"Event trigger in second sentence: {trigger2}\n"
-            f"Question: Do the event triggers '{trigger1}' and '{trigger2}' refer to the same event? Answer with Yes or No.\n"
+            f"Event word in second sentence: {trigger2}\n"
+            f"Question: Do the event words *{trigger1}* and *{trigger2}* refer to the same event? Answer only with Yes or No.\n"
             f"Answer:"
-        )
-        
-        # Tokenize the prompt
-        prompt_encoding = self.tokenizer(
-            prompt,
-            max_length=self.max_len,
-            padding='max_length',
-            truncation=True,
-            return_tensors='pt'
         )
         
         # Convert label to more meaningful text
         label_text = "Yes" if label == 1 else "No"
-        label_encoding = self.tokenizer(
-            label_text,
-            max_length=8,
-            padding='max_length',
-            truncation=True,
-            return_tensors='pt'
-        )
+
+        # Create a chat message
+        message = [
+            {
+                "role": "user",
+                "content": prompt
+            },
+            {
+                "role": "assistant",
+                "content": label_text
+            }
+        ]
+        
+        message_chat = tokenizer.apply_chat_template(message, return_tensors="pt", tokenize=False)
+        encoding = tokenizer.encode_plus(message_chat, max_length=self.max_len, padding='max_length', truncation=True, return_tensors='pt')
         
         return {
-            'input_ids': prompt_encoding['input_ids'].flatten(),
-            'attention_mask': prompt_encoding['attention_mask'].flatten(),
-            'labels': label_encoding['input_ids'].flatten(),
-            'label': torch.tensor(label, dtype=torch.long)  # Original label for evaluation
+            'input_ids': encoding['input_ids'].flatten(),
+            'attention_mask': encoding['attention_mask'].flatten(),
         }
 
 def load_data(data_dir):
