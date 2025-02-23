@@ -178,3 +178,6 @@ cython_debug/
 runs/
 models/
 evaluation_results/
+
+# unsloth
+unsloth_compiled_cache/
