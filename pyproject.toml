@@ -21,6 +21,8 @@ accelerate = "^1.4.0"
 seaborn = "^0.13.2"
 unsloth = "^2025.2.15"
 datasets = "^3.3.2"
+numpy = "<2.0"
+trl = "^0.15"
 
 
 [tool.poetry.group.dev.dependencies]
