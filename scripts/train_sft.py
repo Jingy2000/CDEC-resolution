@@ -9,8 +9,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', type=str, default="unsloth/Qwen2.5-0.5B-Instruct")
     parser.add_argument('--data_dir', type=str, default="data")
-    parser.add_argument('--output_dir', type=str, default="checkpoints/decoder")
-    parser.add_argument('--max_length', type=int, default=300)
+    parser.add_argument('--output_dir', type=str, default="checkpoints/qwen")
+    parser.add_argument('--max_length', type=int, default=512)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=4)
     parser.add_argument('--num_epochs', type=int, default=3)
@@ -32,6 +32,21 @@ def main():
         max_seq_length=args.max_length,
         dtype=None,
         load_in_4bit=False,
+    )
+    
+    model = FastLanguageModel.get_peft_model(
+        model,
+        r = 16, # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
+        target_modules = ["q_proj", "k_proj", "v_proj", "o_proj",
+                        "gate_proj", "up_proj", "down_proj",],
+        lora_alpha = 16,
+        lora_dropout = 0, # Supports any, but = 0 is optimized
+        bias = "none",    # Supports any, but = "none" is optimized
+        # [NEW] "unsloth" uses 30% less VRAM, fits 2x larger batch sizes!
+        use_gradient_checkpointing = "unsloth", # True or "unsloth" for very long context
+        random_state = 3407,
+        use_rslora = False,  # We support rank stabilized LoRA
+        loftq_config = None, # And LoftQ
     )
     
     # Load and prepare data
@@ -56,7 +71,7 @@ def main():
         weight_decay=0.01,
         optim="adamw_torch",
         lr_scheduler_type="cosine",
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         logging_strategy="steps",
         save_strategy="steps",
         eval_steps=args.eval_steps,
@@ -67,7 +82,8 @@ def main():
         metric_for_best_model="eval_loss",
         remove_unused_columns=False,
         packing = False, # Can make training 5x faster for short sequences.
-
+        max_seq_length = args.max_length,
+        dataset_num_proc=2,  # why increasing this will cause BrokenPipeError: [Errno 32] Broken pipe in /.venv/lib/python3.11/site-packages/multiprocess/pool.py
     )
     
     # Initialize trainer

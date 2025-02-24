@@ -1,6 +1,6 @@
 from datasets import Dataset
 
-def formatting_prompts_func(row):
+def generate_coreference_message(row):
     sentence1 = row['sentence1']
     sentence2 = row['sentence2']
     trigger1 = row['e1_trigger']
@@ -34,17 +34,53 @@ def formatting_prompts_func(row):
     ]   
     return messages   
 
-    
 
-def create_llm_datasets(train_df, dev_df, test_df):
     
-    for df in [train_df, dev_df, test_df]:
-        df['messages'] = df.apply(formatting_prompts_func, axis=1)
-        df.drop(['sentence1', 'sentence2', 'e1_trigger', 'e2_trigger', 'label'], axis=1, inplace=True)
+def create_llm_datasets(train_df, dev_df, test_df, tokenizer, max_length=512):
+    datasets = {}
     
-    train_dataset = Dataset.from_pandas(train_df) 
-    dev_dataset = Dataset.from_pandas(dev_df)
-    test_dataset = Dataset.from_pandas(test_df)
+    for name, df in [("train", train_df), ("dev", dev_df), ("test", test_df)]:
+        # convert to ChatML format
+        df['messages'] = df.apply(generate_coreference_message, axis=1)
+        # apply chat template
+        texts = df['messages'].apply(lambda x: tokenizer.apply_chat_template(x, tokenize=False)).tolist()
+
+        
+        dataset = Dataset.from_dict({
+            "text": texts,
+        })
+        
+        map_kwargs = {}
+        map_kwargs["desc"] = f"Tokenizing {name} dataset"
+        map_kwargs["batched"] = True
+        map_kwargs["num_proc"] = 2
+        
+        # tokenize
+        # set num_proc to 2 to avoid BrokenPipeError: [Errno 32] Broken pipe, memory error
+        dataset = dataset.map(
+            lambda x: tokenizer(x["text"], padding="max_length", max_length=max_length, truncation=True, return_tensors="pt"),
+            remove_columns=["text"],
+            batched=True,
+            num_proc=2
+        )
+                
+        # dataset = Dataset.from_pandas(df[['messages']])
+
+        # Create dataset
+        datasets[name] = dataset
     
+    return datasets["train"], datasets["dev"], datasets["test"]
+
+def save_encoded_datasets(train_dataset, dev_dataset, test_dataset, output_dir):
+    """Save encoded datasets to disk"""
+    train_dataset.save_to_disk(f"{output_dir}/train")
+    dev_dataset.save_to_disk(f"{output_dir}/dev")
+    test_dataset.save_to_disk(f"{output_dir}/test")
+
+def load_encoded_datasets(input_dir):
+    """Load encoded datasets from disk"""
+    train_dataset = Dataset.load_from_disk(f"{input_dir}/train")
+    dev_dataset = Dataset.load_from_disk(f"{input_dir}/dev")
+    test_dataset = Dataset.load_from_disk(f"{input_dir}/test")
     return train_dataset, dev_dataset, test_dataset
-    
+
