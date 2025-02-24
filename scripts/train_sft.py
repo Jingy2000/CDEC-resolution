@@ -3,7 +3,7 @@ import argparse
 from src.data_sft import create_llm_datasets
 from src.utils import set_seed, load_data_to_df
 from src.callbacks import PrinterCallback
-from unsloth import FastLanguageModel
+from unsloth import FastLanguageModel, is_bfloat16_supported
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -89,12 +89,13 @@ def main():
         save_total_limit=3,
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
-        remove_unused_columns=False,
         packing = False, # Can make training 5x faster for short sequences.
         max_seq_length = args.max_length,
         dataset_num_proc=2,  # why increasing this will cause BrokenPipeError: [Errno 32] Broken pipe in /.venv/lib/python3.11/site-packages/multiprocess/pool.py
         dataset_text_field="text",
         bf16=True,
+        report_to="tensorboard",
+        run_name="qwen",
     )
     
     # Initialize trainer
