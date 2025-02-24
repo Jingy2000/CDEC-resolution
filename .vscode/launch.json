@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Training Script",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/train_sft.py",
+            "console": "integratedTerminal",
+            "justMyCode": false  // This is important to step into library code
+        }
+    ]
+}
