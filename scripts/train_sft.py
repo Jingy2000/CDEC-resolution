@@ -11,7 +11,7 @@ def parse_args():
     parser.add_argument('--data_dir', type=str, default="data")
     parser.add_argument('--output_dir', type=str, default="checkpoints/qwen")
     parser.add_argument('--max_length', type=int, default=512)
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=4)
     parser.add_argument('--num_epochs', type=int, default=3)
     parser.add_argument('--learning_rate', type=float, default=1e-5)
@@ -21,6 +21,7 @@ def parse_args():
     parser.add_argument('--save_steps', type=int, default=500)
     parser.add_argument('--logging_steps', type=int, default=100)
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
@@ -33,6 +34,7 @@ def main():
         dtype=None,
         load_in_4bit=False,
     )
+    
     
     model = FastLanguageModel.get_peft_model(
         model,
@@ -51,6 +53,13 @@ def main():
     
     # Load and prepare data
     train_df, dev_df, test_df = load_data_to_df(args.data_dir)
+    
+    # use a subset of the data for faster training
+    train_df = train_df.sample(frac=0.001)
+    dev_df = dev_df.sample(frac=0.001)
+    test_df = test_df.sample(frac=0.001)
+    
+    
     train_dataset, dev_dataset, test_dataset = create_llm_datasets(train_df, dev_df, test_df, tokenizer)
     
     # Create data collator for completion-only language modeling
@@ -84,6 +93,8 @@ def main():
         packing = False, # Can make training 5x faster for short sequences.
         max_seq_length = args.max_length,
         dataset_num_proc=2,  # why increasing this will cause BrokenPipeError: [Errno 32] Broken pipe in /.venv/lib/python3.11/site-packages/multiprocess/pool.py
+        dataset_text_field="text",
+        bf16=True,
     )
     
     # Initialize trainer

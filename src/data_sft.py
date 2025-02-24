@@ -45,42 +45,11 @@ def create_llm_datasets(train_df, dev_df, test_df, tokenizer, max_length=512):
         # apply chat template
         texts = df['messages'].apply(lambda x: tokenizer.apply_chat_template(x, tokenize=False)).tolist()
 
-        
+        # Create dataset
         dataset = Dataset.from_dict({
             "text": texts,
         })
         
-        map_kwargs = {}
-        map_kwargs["desc"] = f"Tokenizing {name} dataset"
-        map_kwargs["batched"] = True
-        map_kwargs["num_proc"] = 2
-        
-        # tokenize
-        # set num_proc to 2 to avoid BrokenPipeError: [Errno 32] Broken pipe, memory error
-        dataset = dataset.map(
-            lambda x: tokenizer(x["text"], padding="max_length", max_length=max_length, truncation=True, return_tensors="pt"),
-            remove_columns=["text"],
-            batched=True,
-            num_proc=2
-        )
-                
-        # dataset = Dataset.from_pandas(df[['messages']])
-
-        # Create dataset
         datasets[name] = dataset
     
     return datasets["train"], datasets["dev"], datasets["test"]
-
-def save_encoded_datasets(train_dataset, dev_dataset, test_dataset, output_dir):
-    """Save encoded datasets to disk"""
-    train_dataset.save_to_disk(f"{output_dir}/train")
-    dev_dataset.save_to_disk(f"{output_dir}/dev")
-    test_dataset.save_to_disk(f"{output_dir}/test")
-
-def load_encoded_datasets(input_dir):
-    """Load encoded datasets from disk"""
-    train_dataset = Dataset.load_from_disk(f"{input_dir}/train")
-    dev_dataset = Dataset.load_from_disk(f"{input_dir}/dev")
-    test_dataset = Dataset.load_from_disk(f"{input_dir}/test")
-    return train_dataset, dev_dataset, test_dataset
-
