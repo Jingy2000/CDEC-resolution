@@ -19,10 +19,10 @@ evaluate = "^0.4.3"
 tensorboard = "^2.19.0"
 accelerate = "^1.4.0"
 seaborn = "^0.13.2"
-unsloth = "^2025.2.15"
 datasets = "^3.3.2"
 numpy = "<2.0"
 trl = "^0.15"
+peft = "^0.14.0"
 
 
 [tool.poetry.group.dev.dependencies]

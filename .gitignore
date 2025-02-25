@@ -177,6 +177,7 @@ cython_debug/
 # tensorboard
 runs/
 models/
+checkpoints/
 evaluation_results/
 
 # unsloth
