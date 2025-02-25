@@ -23,6 +23,7 @@ datasets = "^3.3.2"
 numpy = "<2.0"
 trl = "^0.15"
 peft = "^0.14.0"
+bitsandbytes = "^0.45.3"
 
 
 [tool.poetry.group.dev.dependencies]
