@@ -81,6 +81,9 @@ def main():
     print("Loading test data...")
     _, _, test_df = load_data_to_df(args.data_dir)
     
+    # sample for testing
+    test_df = test_df.sample(frac=0.01)
+    
     # Generate predictions
     print("Generating predictions...")
     predictions = []
@@ -88,22 +91,38 @@ def main():
     
     model.eval()
     with torch.no_grad():
-        for _, row in tqdm(test_df.iterrows(), total=len(test_df)):
-            messages = generate_coreference_message(row)
-            prompt = tokenizer.apply_chat_template(messages[:-1], tokenize=False)
+        # Process data in batches
+        for i in tqdm(range(0, len(test_df), args.batch_size)):
+            batch_df = test_df.iloc[i:i + args.batch_size]
+            batch_messages = [generate_coreference_message(row) for _, row in batch_df.iterrows()]
+            batch_prompts = [tokenizer.apply_chat_template(msgs[:-1], tokenize=False) 
+                           for msgs in batch_messages]
             
-            inputs = tokenizer(prompt, return_tensors="pt").to(device)
+            # Tokenize all prompts in the batch
+            batch_inputs = tokenizer(
+                batch_prompts, 
+                return_tensors="pt", 
+                padding=True, 
+                padding_side="left",
+                truncation=True
+            ).to(device)
+            
+            # Generate outputs for the entire batch
             outputs = model.generate(
-                **inputs,
+                **batch_inputs,
                 max_new_tokens=5,
                 temperature=1,
+                pad_token_id=tokenizer.pad_token_id
             )
-            response = tokenizer.decode(outputs[0], skip_special_tokens=True)
             
-            # Extract the model's answer from the response
-            answer = response.split("Answer:")[-1].strip()
-            prediction = process_model_output(answer)
-            predictions.append(prediction)
+            # Decode all outputs in the batch
+            responses = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+            
+            # Process each response in the batch
+            for response in responses:
+                answer = response.split("Answer:")[-1].strip()
+                prediction = process_model_output(answer)
+                predictions.append(prediction)
     
     # Calculate metrics
     results = evaluate_predictions(true_labels, predictions)
