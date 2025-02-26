@@ -82,7 +82,7 @@ def main():
     _, _, test_df = load_data_to_df(args.data_dir)
     
     # sample for testing
-    test_df = test_df.sample(frac=0.01)
+    # test_df = test_df.sample(frac=0.01)
     
     # Generate predictions
     print("Generating predictions...")

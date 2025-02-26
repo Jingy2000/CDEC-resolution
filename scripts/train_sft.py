@@ -19,55 +19,13 @@ def parse_args():
     parser.add_argument('--gradient_accumulation_steps', type=int, default=2)
     parser.add_argument('--num_epochs', type=int, default=1)
     parser.add_argument('--learning_rate', type=float, default=1e-5)
-    parser.add_argument('--warmup_steps', type=int, default=300, help='Number of warmup steps')
+    parser.add_argument('--warmup_steps', type=int, default=500, help='Number of warmup steps')
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--eval_steps', type=int, default=300)
+    parser.add_argument('--eval_steps', type=int, default=500)
     parser.add_argument('--save_steps', type=int, default=500)
     parser.add_argument('--logging_steps', type=int, default=10)
     return parser.parse_args()
 
-
-def compute_metrics(eval_pred):
-    metric = evaluate.load("accuracy")
-    f1_metric = evaluate.load("f1")
-    precision_metric = evaluate.load("precision")
-    recall_metric = evaluate.load("recall")
-    
-    logits, labels = eval_pred
-    predictions = np.argmax(logits, axis=-1)
-    
-    # Calculate metrics for all classes
-    accuracy = metric.compute(predictions=predictions, references=labels)
-    
-    # Focus on minority class (label=1)
-    # Calculate binary metrics specifically for the positive class
-    f1 = f1_metric.compute(predictions=predictions, references=labels, average=None)['f1'][1]
-    precision = precision_metric.compute(predictions=predictions, references=labels, average=None)['precision'][1]
-    recall = recall_metric.compute(predictions=predictions, references=labels, average=None)['recall'][1]
-    
-    # Calculate confusion matrix elements for label 1
-    true_positives = np.sum((predictions == 1) & (labels == 1))
-    false_positives = np.sum((predictions == 1) & (labels == 0))
-    true_negatives = np.sum((predictions == 0) & (labels == 0))
-    false_negatives = np.sum((predictions == 0) & (labels == 1))
-    
-    # Calculate additional metrics
-    specificity = true_negatives / (true_negatives + false_positives) if (true_negatives + false_positives) > 0 else 0
-    balanced_accuracy = (recall + specificity) / 2
-    
-    return {
-        'accuracy': accuracy['accuracy'],
-        'balanced_accuracy': balanced_accuracy,
-        'precision_class1': precision,
-        'recall_class1': recall,
-        'f1_class1': f1,
-        'specificity': specificity,
-        'true_positives': true_positives,
-        'false_positives': false_positives,
-        'true_negatives': true_negatives,
-        'false_negatives': false_negatives,
-    }
-    
     
 def main():
     args = parse_args()
@@ -108,7 +66,7 @@ def main():
     train_df, dev_df, test_df = load_data_to_df(args.data_dir)
     
     # # use a subset of the data for faster testing
-    train_df = train_df.sample(frac=0.1)
+    train_df = train_df.sample(frac=0.5)
     dev_df = dev_df.sample(frac=0.1)
     # test_df = test_df.sample(frac=0.001)
     
@@ -141,7 +99,7 @@ def main():
         logging_steps=args.logging_steps,
         save_total_limit=3,
         # load_best_model_at_end=True,
-        # metric_for_best_model="eval_loss",
+        metric_for_best_model="eval_mean_token_accuracy",
         packing = False,
         max_seq_length = args.max_length,
         dataset_num_proc=2,  # why increasing this will cause BrokenPipeError: [Errno 32] Broken pipe in /.venv/lib/python3.11/site-packages/multiprocess/pool.py
