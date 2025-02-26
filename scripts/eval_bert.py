@@ -4,12 +4,15 @@ import pandas as pd
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from sklearn.metrics import classification_report, confusion_matrix
-from src.data_bert import create_data_loaders
+from src.data_bert import create_single_dataloader
+from src.utils import load_data_to_df
 import json
 from tqdm import tqdm
 import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import datetime
+
+torch._dynamo.config.suppress_errors = True
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Evaluate CDEC Resolution Model')
@@ -53,7 +56,6 @@ def main():
     model = model.to(device)
     
     # Load test data
-    from src.data_bert import load_data_to_df, create_single_dataloader
     _, _, test_df = load_data_to_df(args.data_dir)
     test_loader = create_single_dataloader(
         test_df, 
@@ -94,7 +96,8 @@ def main():
             'true_negatives': int(true_negatives),
             'false_negatives': int(false_negatives)
         },
-        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'model_path': args.model_path
     }
     
     # Create output directory

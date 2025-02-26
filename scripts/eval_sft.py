@@ -55,7 +55,7 @@ def evaluate_predictions(true_labels, predicted_labels):
 def process_model_output(output):
     # Convert model output to binary prediction
     output = output.strip().lower()
-    return 1 if output == 'yes' else 0
+    return 1 if 'yes' in output else 0
 
 def main():
     args = parse_args()
@@ -79,7 +79,7 @@ def main():
     
     # Load test data
     print("Loading test data...")
-    _, _, test_df = load_data_to_df(args.data_dir)
+    _, dev_df, test_df = load_data_to_df(args.data_dir)
     
     # sample for testing
     # test_df = test_df.sample(frac=0.01)
