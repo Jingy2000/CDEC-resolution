@@ -178,7 +178,7 @@ cython_debug/
 runs/
 models/
 checkpoints/
-evaluation_results/
+
 
 # unsloth
 unsloth_compiled_cache/
