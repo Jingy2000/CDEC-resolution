@@ -1,0 +1,47 @@
+{
+    "classification_report": {
+        "Not Coreferent": {
+            "precision": 0.9614058585708262,
+            "recall": 0.9910511109406561,
+            "f1-score": 0.9760034244850683,
+            "support": 39111.0
+        },
+        "Coreferent": {
+            "precision": 0.8672230652503794,
+            "recall": 0.5950026028110359,
+            "f1-score": 0.7057733868477926,
+            "support": 3842.0
+        },
+        "accuracy": 0.9556259166996485,
+        "macro avg": {
+            "precision": 0.9143144619106027,
+            "recall": 0.7930268568758461,
+            "f1-score": 0.8408884056664304,
+            "support": 42953.0
+        },
+        "weighted avg": {
+            "precision": 0.952981527512759,
+            "recall": 0.9556259166996485,
+            "f1-score": 0.9518322652039375,
+            "support": 42953.0
+        }
+    },
+    "confusion_matrix": [
+        [
+            38761,
+            350
+        ],
+        [
+            1556,
+            2286
+        ]
+    ],
+    "additional_metrics": {
+        "true_positives": 2286,
+        "false_positives": 350,
+        "true_negatives": 38761,
+        "false_negatives": 1556
+    },
+    "timestamp": "2025-02-25 23:30:49",
+    "model_path": "models/modernbert_checkpoint-6000-2"
+}
