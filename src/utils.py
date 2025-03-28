@@ -17,11 +17,11 @@ def set_seed(seed=42):
 
 def load_data_to_df(data_dir):
     # Load datasets
-    train_df = pd.read_csv(f"{data_dir}/train_set.csv")
+    train_df = pd.read_csv(f"{data_dir}/balanced_train_set.csv")
     dev_df = pd.read_csv(f"{data_dir}/dev_set.csv")
     test_df = pd.read_csv(f"{data_dir}/test_set.csv")
     
-    # oversample train set
-    train_df = pd.concat([train_df[train_df['label'] == 1]] * 3 + [train_df[train_df['label'] == 0]])
+    # # oversample train set
+    # train_df = pd.concat([train_df[train_df['label'] == 1]] * 3 + [train_df[train_df['label'] == 0]])
     
     return train_df, dev_df, test_df

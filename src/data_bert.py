@@ -25,8 +25,26 @@ class CDECEncoderDataset(Dataset):
         trigger2 = self.data.iloc[idx]['e2_trigger']
         label = self.data.iloc[idx]['label']
         
-        s1 = f"First sentence: {sentence1}\nEvent trigger: {trigger1}"
-        s2 = f"Second sentence: {sentence2}\nEvent trigger: {trigger2}"
+        # Parse trigger word
+        # since the trigger words are not unique (around 4% non-unique)
+        e1_trigger_start = int(self.data.iloc[idx]['e1_trigger_start'])
+        e1_trigger_end = int(self.data.iloc[idx]['e1_trigger_end'])
+        e2_trigger_start = int(self.data.iloc[idx]['e2_trigger_start'])
+        e2_trigger_end = int(self.data.iloc[idx]['e2_trigger_end'])
+        
+        # Insert markers around trigger words using split
+        words1 = sentence1.split()
+        words2 = sentence2.split()
+        words1[e1_trigger_start] = "*" + words1[e1_trigger_start]
+        words1[e1_trigger_end] = words1[e1_trigger_end] + "*"
+
+        words2[e2_trigger_start] = "*" + words2[e2_trigger_start]
+        words2[e2_trigger_end] = words2[e2_trigger_end] + "*"
+        sentence1 = ' '.join(words1)
+        sentence2 = ' '.join(words2)
+        
+        s1 = f"First sentence: {sentence1}\nEvent trigger: *{trigger1}*"
+        s2 = f"Second sentence: {sentence2}\nEvent trigger: *{trigger2}*"
         
         encoding = self.tokenizer.encode_plus(
             text=s1,

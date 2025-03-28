@@ -19,7 +19,7 @@ def parse_args():
     parser.add_argument('--model_path', type=str, required=True, help='Path to the saved model')
     parser.add_argument('--data_dir', type=str, default='data', help='Directory containing the test data')
     parser.add_argument('--output_dir', type=str, default='evaluation_results', help='Directory to save evaluation results')
-    parser.add_argument('--batch_size', type=int, default=256, help='Batch size for evaluation')
+    parser.add_argument('--batch_size', type=int, default=512, help='Batch size for evaluation')
     return parser.parse_args()
 
 def evaluate_model(model, data_loader, device):
