@@ -1,0 +1,47 @@
+{
+    "classification_report": {
+        "Not Coreferent": {
+            "precision": 0.9833354797166775,
+            "recall": 0.9761448185932347,
+            "f1-score": 0.9797269554506262,
+            "support": 39111.0
+        },
+        "Coreferent": {
+            "precision": 0.7739825581395349,
+            "recall": 0.8315981259760541,
+            "f1-score": 0.8017565872020075,
+            "support": 3842.0
+        },
+        "accuracy": 0.9632156077573162,
+        "macro avg": {
+            "precision": 0.8786590189281062,
+            "recall": 0.9038714722846444,
+            "f1-score": 0.8907417713263168,
+            "support": 42953.0
+        },
+        "weighted avg": {
+            "precision": 0.9646095717545005,
+            "recall": 0.9632156077573162,
+            "f1-score": 0.9638081103219693,
+            "support": 42953.0
+        }
+    },
+    "confusion_matrix": [
+        [
+            38178,
+            933
+        ],
+        [
+            647,
+            3195
+        ]
+    ],
+    "additional_metrics": {
+        "true_positives": 3195,
+        "false_positives": 933,
+        "true_negatives": 38178,
+        "false_negatives": 647
+    },
+    "timestamp": "2025-03-28 14:13:21",
+    "model_path": "models/bert/checkpoint-1000-best"
+}

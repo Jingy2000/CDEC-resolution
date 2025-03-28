@@ -1,0 +1,47 @@
+{
+    "classification_report": {
+        "Not Coreferent": {
+            "precision": 0.9824666061470626,
+            "recall": 0.9684999105111094,
+            "f1-score": 0.9754332655215925,
+            "support": 39111.0
+        },
+        "Coreferent": {
+            "precision": 0.7198726693951796,
+            "recall": 0.8240499739718896,
+            "f1-score": 0.7684466019417475,
+            "support": 3842.0
+        },
+        "accuracy": 0.9555793541778222,
+        "macro avg": {
+            "precision": 0.8511696377711211,
+            "recall": 0.8962749422414995,
+            "f1-score": 0.87193993373167,
+            "support": 42953.0
+        },
+        "weighted avg": {
+            "precision": 0.9589784701612005,
+            "recall": 0.9555793541778222,
+            "f1-score": 0.9569190113024748,
+            "support": 42953.0
+        }
+    },
+    "confusion_matrix": [
+        [
+            37879,
+            1232
+        ],
+        [
+            676,
+            3166
+        ]
+    ],
+    "additional_metrics": {
+        "true_positives": 3166,
+        "false_positives": 1232,
+        "true_negatives": 37879,
+        "false_negatives": 676
+    },
+    "timestamp": "2025-03-28 14:10:59",
+    "model_path": "models/bert/checkpoint-3720"
+}
