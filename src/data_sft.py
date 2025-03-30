@@ -6,14 +6,31 @@ def generate_coreference_message(row):
     trigger1 = row['e1_trigger']
     trigger2 = row['e2_trigger']
     label = row['label']
+
+    # Parse trigger word
+    # since the trigger words are not unique (around 4% non-unique)
+    e1_trigger_start = int(row['e1_trigger_start'])
+    e1_trigger_end = int(row['e1_trigger_end'])
+    e2_trigger_start = int(row['e2_trigger_start'])
+    e2_trigger_end = int(row['e2_trigger_end'])
+    
+    # Insert markers around trigger words using split
+    words1 = sentence1.split()
+    words2 = sentence2.split()
+    words1[e1_trigger_start] = "*" + words1[e1_trigger_start]
+    words1[e1_trigger_end] = words1[e1_trigger_end] + "*"
+    words2[e2_trigger_start] = "*" + words2[e2_trigger_start]
+    words2[e2_trigger_end] = words2[e2_trigger_end] + "*"
+    sentence1 = ' '.join(words1)
+    sentence2 = ' '.join(words2)
     
     # Create a more informative prompt for event coreference
     prompt = (
         f"Task: Determine if two event words refer to the same event.\n"
         f"First sentence: {sentence1}\n"
-        f"Event word in first sentence: {trigger1}\n"
+        f"Event word in first sentence: *{trigger1}*\n"
         f"Second sentence: {sentence2}\n"
-        f"Event word in second sentence: {trigger2}\n"
+        f"Event word in second sentence: *{trigger2}*\n"
         f"Question: Do the event words *{trigger1}* and *{trigger2}* refer to the same event? Answer only with Yes or No.\n"
         f"Answer:"
     )
@@ -23,6 +40,10 @@ def generate_coreference_message(row):
 
     # Create a chat message
     messages = [
+        {
+            "role": "system",
+            "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."
+        },
         {
             "role": "user",
             "content": prompt

@@ -7,7 +7,7 @@ import evaluate
 import numpy as np
 from src.data_sft import create_llm_datasets
 from src.utils import set_seed, load_data_to_df
-from src.callbacks import PrinterCallback
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -19,10 +19,10 @@ def parse_args():
     parser.add_argument('--gradient_accumulation_steps', type=int, default=2)
     parser.add_argument('--num_epochs', type=int, default=1)
     parser.add_argument('--learning_rate', type=float, default=1e-5)
-    parser.add_argument('--warmup_steps', type=int, default=500, help='Number of warmup steps')
+    parser.add_argument('--warmup_steps', type=int, default=200, help='Number of warmup steps')
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--eval_steps', type=int, default=500)
-    parser.add_argument('--save_steps', type=int, default=500)
+    parser.add_argument('--eval_steps', type=int, default=300)
+    parser.add_argument('--save_steps', type=int, default=300)
     parser.add_argument('--logging_steps', type=int, default=10)
     return parser.parse_args()
 
@@ -37,6 +37,12 @@ def main():
         print("Warning: No GPU detected. Training will be slow!")
     else:
         print(f"Using device: {device}")
+        
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True, 
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16
+    )
     
     tokenizer = tokenizer = AutoTokenizer.from_pretrained(
         args.model_name,
@@ -47,8 +53,11 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(
         args.model_name,
         trust_remote_code=True,
+        quantization_config=bnb_config,
+        device_map="auto",
+        attn_implementation="flash_attention_2",
+        torch_dtype=torch.bfloat16,
     )
-    model.to(device)
 
     
     peft_config = LoraConfig(
@@ -61,12 +70,10 @@ def main():
         task_type="CAUSAL_LM",  # Task type for model architecture
     )
     
-    
     # Load and prepare data
     train_df, dev_df, test_df = load_data_to_df(args.data_dir)
     
     # # use a subset of the data for faster testing
-    train_df = train_df.sample(frac=0.5)
     dev_df = dev_df.sample(frac=0.1)
     # test_df = test_df.sample(frac=0.001)
     
@@ -86,10 +93,11 @@ def main():
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=8,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
+        gradient_checkpointing=False,  # 
         learning_rate=args.learning_rate,
         warmup_steps=args.warmup_steps,
         weight_decay=0.01,
-        optim="adamw_8bit",
+        optim="adamw_torch",
         lr_scheduler_type="cosine",
         eval_strategy="steps",
         logging_strategy="steps",
@@ -99,8 +107,8 @@ def main():
         logging_steps=args.logging_steps,
         save_total_limit=3,
         # load_best_model_at_end=True,
-        metric_for_best_model="eval_mean_token_accuracy",
-        packing = False,
+        metric_for_best_model="eval_loss",
+        # packing = True,
         max_seq_length = args.max_length,
         dataset_num_proc=2,  # why increasing this will cause BrokenPipeError: [Errno 32] Broken pipe in /.venv/lib/python3.11/site-packages/multiprocess/pool.py
         dataset_text_field="text",
@@ -108,7 +116,7 @@ def main():
         bf16_full_eval=True,
         logging_first_step=True,
         report_to="tensorboard",
-        run_name="qwen",
+        run_name="qwen2.5-1.5b-instruct",
     )
     
     # Initialize trainer
@@ -127,7 +135,7 @@ def main():
     trainer.train()
     
     # Save final model
-    trainer.save_model(f"{args.output_dir}/final")
+    trainer.save_model(f"{args.output_dir}/final_model")
     
 if __name__ == "__main__":
     main()

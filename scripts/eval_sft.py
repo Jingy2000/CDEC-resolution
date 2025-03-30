@@ -66,7 +66,9 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(
         args.base_model,
         trust_remote_code=True,
-        device_map="auto"
+        device_map="auto",
+        attn_implementation="flash_attention_2",
+        torch_dtype=torch.bfloat16,
     )
     tokenizer = AutoTokenizer.from_pretrained(
         args.base_model,
