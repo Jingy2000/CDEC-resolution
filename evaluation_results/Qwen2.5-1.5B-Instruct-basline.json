@@ -1,0 +1,50 @@
+{
+    "classification_report": {
+        "Not Coreferent": {
+            "precision": 0.950627246717042,
+            "recall": 0.9939403236941015,
+            "f1-score": 0.9718014099295035,
+            "support": 39111.0
+        },
+        "Coreferent": {
+            "precision": 0.8849514563106796,
+            "recall": 0.4744924518479958,
+            "f1-score": 0.6177566926465605,
+            "support": 3842.0
+        },
+        "accuracy": 0.9474774753800665,
+        "macro avg": {
+            "precision": 0.9177893515138609,
+            "recall": 0.7342163877710486,
+            "f1-score": 0.794779051288032,
+            "support": 42953.0
+        },
+        "weighted avg": {
+            "precision": 0.9447527702720615,
+            "recall": 0.9474774753800665,
+            "f1-score": 0.9401333121528389,
+            "support": 42953.0
+        }
+    },
+    "confusion_matrix": [
+        [
+            38874,
+            237
+        ],
+        [
+            2019,
+            1823
+        ]
+    ],
+    "additional_metrics": {
+        "true_positives": 1823,
+        "false_positives": 237,
+        "true_negatives": 38874,
+        "false_negatives": 2019
+    },
+    "timestamp": "2025-03-29 23:02:32",
+    "model_info": {
+        "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "adapter_path": null
+    }
+}

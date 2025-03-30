@@ -1,0 +1,50 @@
+{
+    "classification_report": {
+        "Not Coreferent": {
+            "precision": 0.9797889693138954,
+            "recall": 0.9829204060238808,
+            "f1-score": 0.9813521896179815,
+            "support": 39111.0
+        },
+        "Coreferent": {
+            "precision": 0.8202851762173796,
+            "recall": 0.7935970848516398,
+            "f1-score": 0.8067204656700622,
+            "support": 3842.0
+        },
+        "accuracy": 0.965986077805974,
+        "macro avg": {
+            "precision": 0.9000370727656375,
+            "recall": 0.8882587454377603,
+            "f1-score": 0.8940363276440219,
+            "support": 42953.0
+        },
+        "weighted avg": {
+            "precision": 0.9655218966280105,
+            "recall": 0.965986077805974,
+            "f1-score": 0.9657319748854157,
+            "support": 42953.0
+        }
+    },
+    "confusion_matrix": [
+        [
+            38443,
+            668
+        ],
+        [
+            793,
+            3049
+        ]
+    ],
+    "additional_metrics": {
+        "true_positives": 3049,
+        "false_positives": 668,
+        "true_negatives": 38443,
+        "false_negatives": 793
+    },
+    "timestamp": "2025-03-29 22:50:22",
+    "model_info": {
+        "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "adapter_path": "models/qwen/checkpoint-2400"
+    }
+}

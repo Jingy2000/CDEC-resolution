@@ -15,7 +15,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Evaluate CDEC SFT Model')
     parser.add_argument('--base_model', type=str, default="Qwen/Qwen2.5-0.5B-Instruct",
                       help='Base model name')
-    parser.add_argument('--adapter_path', type=str, required=True,
+    parser.add_argument('--adapter_path', type=str, default=None,
                       help='Path to the LoRA adapter')
     parser.add_argument('--data_dir', type=str, default='data',
                       help='Directory containing the test data')
@@ -76,8 +76,9 @@ def main():
     )
     
     # Load LoRA adapter
-    print(f"Loading adapter from: {args.adapter_path}")
-    model = PeftModel.from_pretrained(model, args.adapter_path)
+    if args.adapter_path is not None:
+        print(f"Loading adapter from: {args.adapter_path}")
+        model = PeftModel.from_pretrained(model, args.adapter_path)
     
     # Load test data
     print("Loading test data...")
