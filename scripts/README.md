@@ -63,8 +63,6 @@ Each row in the CSV files contains:
 
 A script for collecting reasoning data from the DeepSeek API for event coreference analysis. Used `asyncio` for efficient batch processing.
 
-#### Usage
-
 ```bash
 python reasoning_collector.py
 ```
@@ -80,26 +78,6 @@ Required variables:
 ### `eval_reasoning_data.py`
 
 A comprehensive evaluation script for analyzing model performance on event coreference predictions.
-
-#### Key Features
-
-1. **Metrics Calculation**
-   - Precision, Recall, and F1 score
-   - Per-class metrics
-   - Macro and micro averages
-   - Support statistics
-
-2. **Multi-class Evaluation**
-   - Handles binary and multi-class scenarios
-   - Detailed per-class performance analysis
-   - Aggregate statistics across classes
-
-3. **Results Processing**
-   - Converts model responses to binary labels
-   - Handles missing or invalid responses
-   - Generates formatted evaluation reports
-
-#### Usage
 
 ```bash
 python eval_reasoning_data.py
