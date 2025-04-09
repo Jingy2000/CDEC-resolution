@@ -82,7 +82,7 @@ def main():
     
     # Load test data
     print("Loading test data...")
-    _, dev_df, test_df = load_data_to_df(args.data_dir)
+    _, _, test_df = load_data_to_df(args.data_dir)
     
     # sample for testing
     # test_df = test_df.sample(frac=0.01)
