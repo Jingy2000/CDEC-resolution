@@ -9,7 +9,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 from sklearn.metrics import classification_report, confusion_matrix
 from src.utils import load_data_to_df
-from src.data_sft import generate_coreference_message
+from src.data_qwen_instruct import generate_coreference_message_qwen
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Evaluate CDEC SFT Model')
@@ -97,7 +97,7 @@ def main():
         # Process data in batches
         for i in tqdm(range(0, len(test_df), args.batch_size)):
             batch_df = test_df.iloc[i:i + args.batch_size]
-            batch_messages = [generate_coreference_message(row) for _, row in batch_df.iterrows()]
+            batch_messages = [generate_coreference_message_qwen(row) for _, row in batch_df.iterrows()]
             batch_prompts = [tokenizer.apply_chat_template(msgs[:-1], tokenize=False) 
                            for msgs in batch_messages]
             

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from sklearn.metrics import classification_report, confusion_matrix
-from src.data_bert import create_single_dataloader
+from src.data_modernbert import create_single_dataloader
 from src.utils import load_data_to_df
 import json
 from tqdm import tqdm

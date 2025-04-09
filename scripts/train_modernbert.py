@@ -9,7 +9,7 @@ from transformers import (
     Trainer,
     EarlyStoppingCallback
 )
-from src.data_bert import create_bert_datasets
+from src.data_modernbert import create_bert_datasets
 from src.utils import set_seed, load_data_to_df
 import evaluate
 import numpy as np

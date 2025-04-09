@@ -1,6 +1,6 @@
 from datasets import Dataset
 
-def generate_coreference_message(row):
+def generate_coreference_message_qwen(row):
     sentence1 = row['sentence1']
     sentence2 = row['sentence2']
     trigger1 = row['e1_trigger']
@@ -53,7 +53,9 @@ def generate_coreference_message(row):
             "content": label_text
         }
     ]   
-    return messages   
+    return messages
+
+
 
 
     
@@ -62,7 +64,7 @@ def create_llm_datasets(train_df, dev_df, test_df, tokenizer, max_length=512):
     
     for name, df in [("train", train_df), ("dev", dev_df), ("test", test_df)]:
         # convert to ChatML format
-        df['messages'] = df.apply(generate_coreference_message, axis=1)
+        df['messages'] = df.apply(generate_coreference_message_qwen, axis=1)
         # apply chat template
         texts = df['messages'].apply(lambda x: tokenizer.apply_chat_template(x, tokenize=False)).tolist()
 
