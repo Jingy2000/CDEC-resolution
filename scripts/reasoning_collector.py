@@ -132,7 +132,6 @@ class ReasoningCollector:
         return df
 
 if __name__ == "__main__":
-    # Example usage
     api_key = "your-api-key-here"  # Replace with your actual API key
     generator = ReasoningCollector(api_key)
     

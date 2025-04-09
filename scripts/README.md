@@ -35,25 +35,6 @@ graph TD
     end
 ```
 
-#### Key Features
-
-1. **Data Format Conversion**
-   - Converts raw tab-separated data to CSV format
-   - Handles train/dev/test sets separately
-   - Extracts trigger words
-   - Adds sentence length information
-
-2. **Dataset Balancing**
-   - Input: Full training set (~227k samples)
-   - Keeps all positive samples (~19.6k)
-   - Samples negative examples (20k)
-   - Output: ~39.6k balanced samples
-
-3. **Unique Sampling**
-   - Creates diverse 9k sample dataset
-   - Maintains sentence uniqueness
-   - Preserves event coreference examples
-
 #### Usage
 
 ```bash
@@ -77,3 +58,75 @@ Each row in the CSV files contains:
 - Binary coreference label (1: coreferent, 0: non-coreferent)
 - Total sentence length
 - Event IDs (test set only) 
+
+### `reasoning_collector.py`
+
+A script for collecting reasoning data from the DeepSeek API for event coreference analysis. Used `asyncio` for efficient batch processing.
+
+#### Usage
+
+```bash
+python reasoning_collector.py
+```
+
+Required variables:
+- `api_key`: Your DeepSeek API key, you need to modify the script to run
+
+#### Output Files
+
+- `results_intermediate.csv`: Saves progress during processing
+- `results_final.csv`: Complete dataset with model responses
+
+### `eval_reasoning_data.py`
+
+A comprehensive evaluation script for analyzing model performance on event coreference predictions.
+
+#### Key Features
+
+1. **Metrics Calculation**
+   - Precision, Recall, and F1 score
+   - Per-class metrics
+   - Macro and micro averages
+   - Support statistics
+
+2. **Multi-class Evaluation**
+   - Handles binary and multi-class scenarios
+   - Detailed per-class performance analysis
+   - Aggregate statistics across classes
+
+3. **Results Processing**
+   - Converts model responses to binary labels
+   - Handles missing or invalid responses
+   - Generates formatted evaluation reports
+
+#### Usage
+
+```bash
+python eval_reasoning_data.py
+```
+
+#### Output Files
+
+- `reason_deepseek_r1_train.csv`: Processed results with reasoning content
+
+#### Metrics Output Format
+
+```
+Per-class metrics:
+Class 0:
+  Precision: X.XXX
+  Recall: X.XXX
+  F1: X.XXX
+
+Class 1:
+  Precision: X.XXX
+  Recall: X.XXX
+  F1: X.XXX
+
+Macro average:
+  Precision: X.XXX
+  Recall: X.XXX
+  F1: X.XXX
+
+Overall Accuracy: X.XXX
+``` 
