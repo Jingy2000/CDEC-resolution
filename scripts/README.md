@@ -113,22 +113,23 @@ python eval_reasoning_data.py
 
 ```
 Per-class metrics:
+
 Class 0:
-  Precision: X.XXX
-  Recall: X.XXX
-  F1: X.XXX
+Precision: 0.840
+Recall: 0.968
+F1: 0.900
 
 Class 1:
-  Precision: X.XXX
-  Recall: X.XXX
-  F1: X.XXX
+Precision: 0.953
+Recall: 0.779
+F1: 0.857
 
 Macro average:
-  Precision: X.XXX
-  Recall: X.XXX
-  F1: X.XXX
+Precision: 0.897
+Recall: 0.873
+F1: 0.879
 
-Overall Accuracy: X.XXX
+Overall Accuracy: 0.882
 ```
 
 ### `train_modernbert.py`
