@@ -129,4 +129,50 @@ Macro average:
   F1: X.XXX
 
 Overall Accuracy: X.XXX
-``` 
+```
+
+### `train_modernbert.py`
+
+Train ModernBERT model for event coreference classification.
+
+```bash
+python scripts/train_modernbert.py \
+  --model_name answerdotai/ModernBERT-base \
+  --data_dir data \
+  --output_dir models/bert \
+  --epochs 3 \
+  --train_batch_size 64 \
+  --learning_rate 1e-5
+```
+
+### `train_qwen_instruct_sft.py`
+
+Fine-tune Qwen model with instruction tuning.
+
+```bash
+python scripts/train_qwen_instruct_sft.py \
+  --model_name Qwen/Qwen2.5-0.5B-Instruct \
+  --data_dir data \
+  --output_dir models/qwen \
+  --num_epochs 1 \
+  --batch_size 4
+```
+
+### `eval_modernbert.py`
+
+Evaluate ModernBERT model performance.
+
+```bash
+python eval_modernbert.py --model_path models/final_model \
+                         --data_dir data \
+                         --output_dir evaluation_results
+```
+
+### `eval_qwen_instruct.py`
+
+Evaluate Qwen model performance.
+
+```bash
+python eval_qwen_instruct.py --base_model Qwen/Qwen2.5-1.5B-Instruct \
+                            --adapter_path models/qwen/final_model \
+                            --data_dir data 
