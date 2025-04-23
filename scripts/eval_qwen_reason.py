@@ -9,11 +9,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 from sklearn.metrics import classification_report, confusion_matrix
 from src.utils import load_data_to_df
-from src.data_qwen_instruct import generate_coreference_message_qwen
+from src.data_qwen_instruct import generate_coreference_message_qwen_reason
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Evaluate CDEC SFT Model')
-    parser.add_argument('--base_model', type=str, default="Qwen/Qwen2.5-0.5B-Instruct",
+    parser.add_argument('--base_model', type=str, default="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
                       help='Base model name')
     parser.add_argument('--adapter_path', type=str, default=None,
                       help='Path to the LoRA adapter')
@@ -62,6 +62,7 @@ def process_model_output(output):
     else:
         return "Invalid"
 
+
 def main():
     args = parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -102,7 +103,7 @@ def main():
         # Process data in batches
         for i in tqdm(range(0, len(test_df), args.batch_size)):
             batch_df = test_df.iloc[i:i + args.batch_size]
-            batch_messages = [generate_coreference_message_qwen(row) for _, row in batch_df.iterrows()]
+            batch_messages = [generate_coreference_message_qwen_reason(row) for _, row in batch_df.iterrows()]
             batch_prompts = [tokenizer.apply_chat_template(msgs[:-1], tokenize=False, add_generation_prompt=True) 
                            for msgs in batch_messages]
             
@@ -128,7 +129,7 @@ def main():
             
             # Process each response in the batch
             for response in responses:
-                answer = response.split("Answer:")[-1].strip()
+                answer = response.split("</think>")[-1].strip()
                 prediction = process_model_output(answer)
                 predictions.append(prediction)
     

@@ -5,13 +5,13 @@ import torch
 import argparse
 import evaluate
 import numpy as np
-from src.data_sft import create_llm_datasets
+from src.data_qwen_instruct import create_llm_datasets
 from src.utils import set_seed, load_data_to_df
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_name', type=str, default="Qwen/Qwen2.5-0.5B-Instruct")
+    parser.add_argument('--model_name', type=str, default="Qwen/Qwen2.5-1.5B-Instruct")
     parser.add_argument('--data_dir', type=str, default="data")
     parser.add_argument('--output_dir', type=str, default="models/qwen")
     parser.add_argument('--max_length', type=int, default=512)

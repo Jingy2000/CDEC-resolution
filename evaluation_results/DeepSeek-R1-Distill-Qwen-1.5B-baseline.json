@@ -1,0 +1,50 @@
+{
+    "classification_report": {
+        "Not Coreferent": {
+            "precision": 0.9483770143212154,
+            "recall": 0.9464856434251233,
+            "f1-score": 0.9474303849303849,
+            "support": 39111.0
+        },
+        "Coreferent": {
+            "precision": 0.4660714285714286,
+            "recall": 0.47553357626236337,
+            "f1-score": 0.47075496006183976,
+            "support": 3842.0
+        },
+        "accuracy": 0.904360580169022,
+        "macro avg": {
+            "precision": 0.707224221446322,
+            "recall": 0.7110096098437433,
+            "f1-score": 0.7090926724961123,
+            "support": 42953.0
+        },
+        "weighted avg": {
+            "precision": 0.9052364173791931,
+            "recall": 0.904360580169022,
+            "f1-score": 0.9047933867615737,
+            "support": 42953.0
+        }
+    },
+    "confusion_matrix": [
+        [
+            37018,
+            2093
+        ],
+        [
+            2015,
+            1827
+        ]
+    ],
+    "additional_metrics": {
+        "true_positives": 1827,
+        "false_positives": 2093,
+        "true_negatives": 37018,
+        "false_negatives": 2015
+    },
+    "timestamp": "2025-04-09 12:35:36",
+    "model_info": {
+        "base_model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+        "adapter_path": null
+    }
+}
