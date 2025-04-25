@@ -1,6 +1,7 @@
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM, SFTConfig
 from peft import LoraConfig
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers.trainer_utils import EvalPrediction
 import torch
 import argparse
 import evaluate
@@ -8,29 +9,117 @@ import numpy as np
 import pandas as pd
 from src.data_qwen_instruct import create_llm_datasets
 from src.utils import set_seed
+import os
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+from typing import Dict
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_name', type=str, default="Qwen/Qwen2.5-1.5B-Instruct")
-    parser.add_argument('--train_path', type=str, default="data/balanced_train_set.csv",
-                        help="Path to training dataset CSV file")
+    parser.add_argument('--model_name', type=str, default="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
+    parser.add_argument('--train_path', type=str, required=True,
+                       help="Path to training dataset CSV file")
     parser.add_argument('--dev_path', type=str, default="data/dev_set.csv",
-                        help="Path to validation dataset CSV file")
-    parser.add_argument('--output_dir', type=str, default="models/qwen")
-    parser.add_argument('--max_length', type=int, default=512)
+                       help="Path to validation dataset CSV file")
+    parser.add_argument('--max_length', type=int, default=2500)
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=2)
     parser.add_argument('--num_epochs', type=int, default=1)
     parser.add_argument('--learning_rate', type=float, default=1e-5)
-    parser.add_argument('--warmup_steps', type=int, default=200, help='Number of warmup steps')
+    parser.add_argument('--warmup_steps', type=int, default=100, help='Number of warmup steps')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--eval_steps', type=int, default=300)
     parser.add_argument('--save_steps', type=int, default=300)
     parser.add_argument('--logging_steps', type=int, default=10)
     return parser.parse_args()
 
+tokenizer = AutoTokenizer.from_pretrained(
+    parse_args().model_name,
+    use_fast=True,
+    trust_remote_code=True,
+)
+
+# This will prevent load logits into GPU which will cause the OOM error
+def preprocess_logits_for_metrics(logits, labels):
+    """
+    Original Trainer may have a memory leak. 
+    This is a workaround to avoid storing too many tensors that are not needed.
+    """
+    pred_ids = torch.argmax(logits, dim=-1)
+    return pred_ids, labels
+
+def compute_metrics(eval_pred: EvalPrediction) -> Dict[str, float]:
+    """
+    Compute metrics for the evaluation predictions.
+    This function decodes the prediction tokens and looks for Yes/No answers after the thinking process.
     
+    Args:
+        eval_pred: Evaluation predictions from the model
+        
+    Returns:
+        Dictionary of metrics including accuracy and ratio of invalid predictions
+    """
+    # Get predictions and references
+    token_predictions = eval_pred.predictions[0]
+    labels = eval_pred.label_ids
+    
+    pred_answers = []
+    true_answers = []
+    
+    # Process each sequence in the batch
+    for pred_seq, label_seq in zip(token_predictions, labels):
+        # Filter out padding tokens
+        valid_pred_tokens = pred_seq[pred_seq != -100]
+        # Decode the entire prediction sequence
+        decoded_pred = tokenizer.decode(valid_pred_tokens)
+        
+        # Find the thinking process
+        parts = decoded_pred.split("</think>")
+        
+        if len(parts) > 1:
+            # Get the text after the last </think> tag
+            answer_text = parts[-1].lower().strip()
+            
+            # Look for Yes/No in the answer portion
+            if "yes" in answer_text:
+                pred_answer = 1
+            elif "no" in answer_text:
+                pred_answer = 0
+            else:
+                # Neither Yes nor No found clearly
+                pred_answer = -1
+        else:
+            # No thinking token found
+            pred_answer = -1
+        
+        # Process label to find true answer
+        valid_indices = label_seq != -100
+        if np.any(valid_indices):
+            valid_labels = label_seq[valid_indices]
+            # Decode the valid label tokens
+            decoded_label = tokenizer.decode(valid_labels)
+            
+            # Look for Yes/No in the label
+            if "yes" in decoded_label.lower().split():
+                label_answer = 1
+            else:
+                label_answer = 0
+            
+            pred_answers.append(pred_answer)
+            true_answers.append(label_answer)
+    
+    # Convert to numpy arrays
+    pred_answers = np.array(pred_answers)
+    true_answers = np.array(true_answers)
+    
+    # Calculate metrics
+    accuracy = accuracy_score(true_answers, pred_answers)
+    
+    return {
+        "accuracy": float(accuracy),
+        "num_invalid": float(np.sum(pred_answers == -1) / len(pred_answers))
+    }
+
 def main():
     args = parse_args()
     set_seed(args.seed)
@@ -79,8 +168,8 @@ def main():
     dev_df = pd.read_csv(args.dev_path)
     
     # use a subset of the data for faster testing
-    dev_df = dev_df.sample(frac=0.1)
-    
+    dev_df = dev_df.sample(frac=0.001)
+
     # Create datasets
     datasets = create_llm_datasets(
         train_df, dev_df, 
@@ -92,17 +181,18 @@ def main():
     dev_dataset = datasets["dev"]
     
     # Create data collator for completion-only language modeling
+    response_template = '<｜Assistant｜>'
     collator = DataCollatorForCompletionOnlyLM(
-        response_template="<|im_start|>assistant\n",
+        response_template=response_template,
         tokenizer=tokenizer,
     )
     
     # Training arguments
     training_args = SFTConfig(
-        output_dir=args.output_dir,
+        output_dir=f"models/{args.model_name}",
         num_train_epochs=args.num_epochs,
         per_device_train_batch_size=args.batch_size,
-        per_device_eval_batch_size=8,
+        per_device_eval_batch_size=4,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         gradient_checkpointing=False,  # 
         learning_rate=args.learning_rate,
@@ -117,11 +207,9 @@ def main():
         save_steps=args.save_steps,
         logging_steps=args.logging_steps,
         save_total_limit=3,
-        # load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
-        # packing = True,
+        # metric_for_best_model="eval_accuracy",
         max_seq_length = args.max_length,
-        dataset_num_proc=2,  # why increasing this will cause BrokenPipeError: [Errno 32] Broken pipe in /.venv/lib/python3.11/site-packages/multiprocess/pool.py
+        dataset_num_proc=2,
         dataset_text_field="text",
         bf16=True,
         bf16_full_eval=True,
@@ -140,13 +228,15 @@ def main():
         data_collator=collator,
         processing_class=tokenizer,
         # callbacks=[],
+        compute_metrics=compute_metrics,
+        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
     )
     
     # Train
     trainer.train()
     
     # Save final model
-    trainer.save_model(f"{args.output_dir}/final_model")
+    trainer.save_model(f"models/{args.model_name}/final_model")
     
 if __name__ == "__main__":
     main()

@@ -32,11 +32,27 @@
             "justMyCode": false,
             "args": [
                 "--base_model", "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
-                "--data_dir", "data",
                 "--output_dir", "evaluation_results",
                 "--batch_size", "4",
-                // "--adapter_path", "models/qwen/qwen2.5-1.5b-instruct-checkpoint-2400"
+                "--adapter_path", "models/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/final_model"
+            ]
+        },
+        {
+            "name": "Python: SFT Qwen Reason Script",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/train_qwen_deepseek_distill_sft.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--model_name", "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+                "--dev_path", "data/dev_set.csv",
+                "--train_path", "data/reason_deepseek_r1_train.csv",
+                "--batch_size", "1",
+                "--eval_steps", "5",
+                "--logging_steps", "5"
             ]
         }
+
     ]
 }

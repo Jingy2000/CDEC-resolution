@@ -137,6 +137,12 @@ python scripts/train_qwen_instruct_sft.py \
   --batch_size 4
 ```
 
+### `train_qwen_deepseek_distill_sft.py`
+
+```bash
+python scripts/train_qwen_deepseek_distill_sft.py --train_path data/reason_deepseek_r1_train.csv --dev_path data/dev_set.csv --batch_size 2 --num_epochs 1 --eval_steps 10 --save_steps 50 --logging_steps 5
+```
+
 ### `eval_modernbert.py`
 
 Evaluate ModernBERT model performance.

@@ -5,6 +5,7 @@ import os
 from tqdm import tqdm
 from datetime import datetime
 import numpy as np
+import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 from sklearn.metrics import classification_report, confusion_matrix
@@ -17,8 +18,8 @@ def parse_args():
                       help='Base model name')
     parser.add_argument('--adapter_path', type=str, default=None,
                       help='Path to the LoRA adapter')
-    parser.add_argument('--data_dir', type=str, default='data',
-                      help='Directory containing the test data')
+    parser.add_argument('--eval_path', type=str, required=True,
+                      help='Path to the evaluation dataset CSV file')
     parser.add_argument('--output_dir', type=str, default='evaluation_results',
                       help='Directory to save evaluation results')
     parser.add_argument('--batch_size', type=int, default=128,
@@ -87,7 +88,7 @@ def main():
     
     # Load test data
     print("Loading test data...")
-    _, _, test_df = load_data_to_df(args.data_dir)
+    test_df = pd.read_csv(args.eval_path)
     
     # sample for testing
     # test_df = test_df.sample(frac=0.01)

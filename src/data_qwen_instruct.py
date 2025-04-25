@@ -105,7 +105,7 @@ def generate_coreference_message_qwen_reason(row, system_prompt: str | None = No
         })
     
     # Create a chat message
-    response = f"<think>\n{reasoning_content}\n</think>\n\n{label_text}"
+    response = f"<think>\n{reasoning_content}\n</think>\n\n{label_text}" if reasoning_content != "" else f"{label_text}"
     messages = [
         {
             "role": "user",
@@ -119,12 +119,39 @@ def generate_coreference_message_qwen_reason(row, system_prompt: str | None = No
     return messages   
 
     
-def create_llm_datasets(train_df, dev_df, test_df, tokenizer, max_length=512):
+def create_llm_datasets(*dfs, names=None, tokenizer=None, max_length=512):
+    """
+    Create datasets for LLM training from multiple dataframes.
+    
+    Args:
+        *dfs: Variable number of dataframes
+        names: List of names for each dataset, defaults to ["train", "dev", "test", ...]
+        tokenizer: Tokenizer to use for applying chat template
+        max_length: Maximum sequence length
+        
+    Returns:
+        Dictionary of datasets with provided names as keys
+    """
+    if tokenizer is None:
+        raise ValueError("Tokenizer must be provided")
+        
+    if names is None:
+        # Default names for the first three datasets
+        default_names = ["train", "dev", "test"]
+        # For any additional datasets, name them dataset_3, dataset_4, etc.
+        names = default_names[:len(dfs)] + [f"dataset_{i}" for i in range(len(default_names), len(dfs))]
+    
+    if len(names) != len(dfs):
+        raise ValueError(f"Number of names ({len(names)}) must match number of dataframes ({len(dfs)})")
+    
     datasets = {}
     
-    for name, df in [("train", train_df), ("dev", dev_df), ("test", test_df)]:
+    for name, df in zip(names, dfs):
         # convert to ChatML format
-        df['messages'] = df.apply(generate_coreference_message_qwen, axis=1)
+        if 'reasoning_content' in df.columns:
+            df['messages'] = df.apply(generate_coreference_message_qwen_reason, axis=1)
+        else:
+            df['messages'] = df.apply(generate_coreference_message_qwen, axis=1)
         # apply chat template
         texts = df['messages'].apply(lambda x: tokenizer.apply_chat_template(x, tokenize=False)).tolist()
 
@@ -135,4 +162,4 @@ def create_llm_datasets(train_df, dev_df, test_df, tokenizer, max_length=512):
         
         datasets[name] = dataset
     
-    return datasets["train"], datasets["dev"], datasets["test"]
+    return datasets
