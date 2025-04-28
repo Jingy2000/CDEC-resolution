@@ -1,0 +1,46 @@
+{
+    "classification_report": {
+        "Not Coreferent": {
+            "precision": 0.8235887096774194,
+            "recall": 0.9533255542590432,
+            "f1-score": 0.8837209302325582,
+            "support": 2571.0
+        },
+        "Coreferent": {
+            "precision": 0.940149625935162,
+            "recall": 0.7821576763485477,
+            "f1-score": 0.8539071347678369,
+            "support": 2410.0
+        },
+        "accuracy": 0.8705079301345111,
+        "macro avg": {
+            "precision": 0.8818691678062907,
+            "recall": 0.8677416153037955,
+            "f1-score": 0.8688140325001975,
+            "support": 4981.0
+        },
+        "weighted avg": {
+            "precision": 0.8799853786557691,
+            "recall": 0.8705079301345111,
+            "f1-score": 0.8692958655728555,
+            "support": 4981.0
+        }
+    },
+    "confusion_matrix": [
+        [
+            2451,
+            120
+        ],
+        [
+            525,
+            1885
+        ]
+    ],
+    "additional_metrics": {
+        "true_positives": 1885,
+        "false_positives": 120,
+        "true_negatives": 2451,
+        "false_negatives": 525
+    },
+    "timestamp": "2025-04-27 23:29:14"
+}
