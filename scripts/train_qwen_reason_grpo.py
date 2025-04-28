@@ -1,36 +1,38 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-from peft import LoraConfig
+from unsloth import FastLanguageModel, is_bfloat16_supported
 import torch
 from src.data_qwen_instruct import create_grpo_dataset
 import re
 import pandas as pd
 from trl import GRPOConfig, GRPOTrainer
 
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True, 
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.bfloat16
+
+max_seq_length = 2048 # Can increase for longer reasoning traces
+lora_rank = 32 # Larger rank = smarter, but slower
+
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name = "Qwen/Qwen2.5-1.5B-Instruct",
+    max_seq_length = max_seq_length,
+    load_in_4bit = True, # False for LoRA 16bit
+    fast_inference = True, # Enable vLLM fast inference
+    max_lora_rank = lora_rank,
+    gpu_memory_utilization = 0.5, # Reduce if out of memory
 )
 
-tokenizer = tokenizer = AutoTokenizer.from_pretrained(
-    "Qwen/Qwen2.5-1.5B-Instruct",
-    use_fast=True,
-    trust_remote_code=True,
-)
-
-peft_config = LoraConfig(
-    r=16,  # Rank dimension - typically between 4-32
-    lora_alpha=32,  # LoRA scaling factor - typically 2x rank
-    lora_dropout=0.05,  # Dropout probability for LoRA layers
-    bias="none",  # Bias type for LoRA. the corresponding biases will be updated during training.
-    target_modules= ["q_proj", "k_proj", "v_proj", "o_proj",
-                    "gate_proj", "up_proj", "down_proj",],  # Which modules to apply LoRA to
-    task_type="CAUSAL_LM",  # Task type for model architecture
+model = FastLanguageModel.get_peft_model(
+    model,
+    r = lora_rank, # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
+    target_modules = [
+        "q_proj", "k_proj", "v_proj", "o_proj",
+        "gate_proj", "up_proj", "down_proj",
+    ], # Remove QKVO if out of memory
+    lora_alpha = lora_rank,
+    use_gradient_checkpointing = "unsloth", # Enable long context finetuning
+    random_state = 3407,
 )
 
 train_df = train_df = pd.read_csv('data/balanced_train_set.csv')
 
-train_df = train_df.sample(frac=0.1)
+train_df = train_df.sample(frac=0.001)
 
 train_dataset = create_grpo_dataset(train_df)
 
@@ -85,9 +87,10 @@ def xmlcount_reward_func(completions, **kwargs) -> list[float]:
     contents = [completion[0]["content"] for completion in completions]
     return [count_xml(c) for c in contents]
 
+
+
 training_args = GRPOConfig(
     use_vllm = True, # use vLLM for fast inference!
-    vllm_gpu_memory_utilization = 0.5,
     learning_rate = 5e-6,
     adam_beta1 = 0.9,
     adam_beta2 = 0.99,
@@ -96,11 +99,11 @@ training_args = GRPOConfig(
     lr_scheduler_type = "cosine",
     optim = "adamw_8bit",
     logging_steps = 1,
-    bf16 = True,
-    # https://github.com/huggingface/trl/pull/2776#issue-2833772774
-    per_device_train_batch_size = 4,   # GRPOConfig(num_generations=num_generations, per_device_batch_size=num_generations*num_prompts_per_device, ...)
-    gradient_accumulation_steps = 2, # Increase to 4 for smoother training
-    num_generations = 4, # Decrease if out of memory
+    bf16 = is_bfloat16_supported(),
+    fp16 = not is_bfloat16_supported(),
+    per_device_train_batch_size = 1,
+    gradient_accumulation_steps = 3, # Increase to 4 for smoother training
+    num_generations = 8, # Decrease if out of memory
     max_prompt_length = 256,
     max_completion_length = 512,
     # num_train_epochs = 1, # Set to 1 for a full training run
@@ -113,7 +116,7 @@ training_args = GRPOConfig(
 
 
 trainer = GRPOTrainer(
-    model = "Qwen/Qwen2.5-1.5B-Instruct",
+    model = model,
     processing_class = tokenizer,
     reward_funcs = [
         xmlcount_reward_func,
@@ -124,7 +127,5 @@ trainer = GRPOTrainer(
     ],
     args = training_args,
     train_dataset = train_dataset,
-    peft_config=peft_config
 )
-
 trainer.train()
