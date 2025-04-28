@@ -45,6 +45,6 @@
     "timestamp": "2025-03-29 22:50:22",
     "model_info": {
         "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
-        "adapter_path": "models/qwen/checkpoint-2400"
+        "adapter_path": "models/qwenqwen2.5-1.5b-instruct-checkpoint-2400-best-last-token-sft-balanced-dataset"
     }
 }

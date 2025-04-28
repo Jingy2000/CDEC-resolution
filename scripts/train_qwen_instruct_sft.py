@@ -6,7 +6,7 @@ import argparse
 import evaluate
 import numpy as np
 import pandas as pd
-from src.data_qwen_instruct import create_llm_datasets
+from src.data_qwen_instruct import create_sft_datasets
 from src.utils import set_seed
 
 
@@ -82,7 +82,7 @@ def main():
     dev_df = dev_df.sample(frac=0.1)
     
     # Create datasets
-    datasets = create_llm_datasets(
+    datasets = create_sft_datasets(
         train_df, dev_df, 
         names=["train", "dev"],
         tokenizer=tokenizer

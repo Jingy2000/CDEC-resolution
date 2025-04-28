@@ -55,6 +55,68 @@ def generate_coreference_message_qwen(row):
     ]   
     return messages
 
+def generate_coreference_message_grpo(row):
+    sentence1 = row['sentence1']
+    sentence2 = row['sentence2']
+    trigger1 = row['e1_trigger']
+    trigger2 = row['e2_trigger']
+    label = row['label']
+
+    # Parse trigger word
+    # since the trigger words are not unique (around 4% non-unique)
+    e1_trigger_start = int(row['e1_trigger_start'])
+    e1_trigger_end = int(row['e1_trigger_end'])
+    e2_trigger_start = int(row['e2_trigger_start'])
+    e2_trigger_end = int(row['e2_trigger_end'])
+    
+    # Insert markers around trigger words using split
+    words1 = sentence1.split()
+    words2 = sentence2.split()
+    words1[e1_trigger_start] = "*" + words1[e1_trigger_start]
+    words1[e1_trigger_end] = words1[e1_trigger_end] + "*"
+    words2[e2_trigger_start] = "*" + words2[e2_trigger_start]
+    words2[e2_trigger_end] = words2[e2_trigger_end] + "*"
+    sentence1 = ' '.join(words1)
+    sentence2 = ' '.join(words2)
+    
+    # Create a more informative prompt for event coreference
+
+
+    prompt = (
+        f"Task: Determine if two event words refer to the same event.\n"
+        f"First sentence: {sentence1}\n"
+        f"Event word in first sentence: *{trigger1}*\n"
+        f"Second sentence: {sentence2}\n"
+        f"Event word in second sentence: *{trigger2}*\n"
+        f"Question: Do the event words *{trigger1}* and *{trigger2}* refer to the same event? Answer only with Yes or No.\n"
+    )
+    
+    prompt += """
+Respond in the following format:
+<reasoning>
+...
+</reasoning>
+<answer>
+...
+</answer>
+"""
+    
+    # Convert label to more meaningful text
+    label_text = "Yes" if label == 1 else "No"
+
+    # Create a chat message
+    messages = [
+        {
+            "role": "system",
+            "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."
+        },
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ]   
+    return messages
+
 
 def generate_coreference_message_qwen_reason(row, system_prompt: str | None = None):
     sentence1 = row['sentence1']
@@ -91,8 +153,17 @@ def generate_coreference_message_qwen_reason(row, system_prompt: str | None = No
         f"Second sentence: {sentence2}\n"
         f"Event word in second sentence: *{trigger2}*\n"
         f"Question: Do the event words *{trigger1}* and *{trigger2}* refer to the same event? Answer only with Yes or No.\n"
-        f"Answer:"
     )
+    
+    prompt += """
+Respond in the following format:
+<reasoning>
+...
+</reasoning>
+<answer>
+...
+</answer>
+"""
     
     # Convert label to more meaningful text
     label_text = "Yes" if label == 1 else "No"
@@ -105,8 +176,12 @@ def generate_coreference_message_qwen_reason(row, system_prompt: str | None = No
         })
     
     # Create a chat message
-    response = f"<think>\n{reasoning_content}\n</think>\n\n{label_text}" if reasoning_content != "" else f"{label_text}"
+    response = f"<reasoning>\n{reasoning_content}\n</reasoning>\n<answer>\n{label_text}\n<answer>"
     messages = [
+        {
+            "role": "system",
+            "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."
+        },
         {
             "role": "user",
             "content": prompt
@@ -119,7 +194,7 @@ def generate_coreference_message_qwen_reason(row, system_prompt: str | None = No
     return messages   
 
     
-def create_llm_datasets(*dfs, names=None, tokenizer=None, max_length=512):
+def create_sft_datasets(*dfs, names=None, tokenizer=None):
     """
     Create datasets for LLM training from multiple dataframes.
     
@@ -127,7 +202,6 @@ def create_llm_datasets(*dfs, names=None, tokenizer=None, max_length=512):
         *dfs: Variable number of dataframes
         names: List of names for each dataset, defaults to ["train", "dev", "test", ...]
         tokenizer: Tokenizer to use for applying chat template
-        max_length: Maximum sequence length
         
     Returns:
         Dictionary of datasets with provided names as keys
@@ -163,3 +237,29 @@ def create_llm_datasets(*dfs, names=None, tokenizer=None, max_length=512):
         datasets[name] = dataset
     
     return datasets
+
+
+def create_grpo_dataset(df):
+    """
+    Convert a dataframe into a Dataset for GRPO training with prompt and answer columns.
+    
+    Args:
+        df: DataFrame containing the data
+        
+    Returns:
+        Dataset with 'prompt' and 'answer' columns required for GRPO training
+    """
+    # First generate messages if not already present
+    df['messages'] = df.apply(generate_coreference_message_grpo, axis=1)
+    df['label_text'] = df.apply(lambda x: "Yes" if x['label'] == 1 else 'No', axis=1)
+    
+    prompts = df['messages'].tolist()
+    answers = df['label_text'].tolist()
+    
+    # Create dataset with prompt and answer columns
+    dataset = Dataset.from_dict({
+        "prompt": prompts,
+        "answer": answers
+    })
+    
+    return dataset
