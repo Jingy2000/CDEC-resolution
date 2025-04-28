@@ -108,3 +108,8 @@ python scripts/eval_sft.py --base_model Qwen/Qwen2.5-0.5B-Instruct --adapter_pat
     ├── data_sft.py        # Qwen data processing
     └── utils.py           # Utility functions
 ```
+
+
+TODO:
+1. SFT on reasoning data.
+  1. 

@@ -2,6 +2,7 @@ import argparse
 import torch
 import json
 import os
+import re
 from tqdm import tqdm
 from datetime import datetime
 import numpy as np
@@ -12,9 +13,12 @@ from sklearn.metrics import classification_report, confusion_matrix
 from src.utils import load_data_to_df
 from src.data_qwen_instruct import generate_coreference_message_qwen_reason
 
+from vllm import LLM, SamplingParams
+from vllm.lora.request import LoRARequest
+
 def parse_args():
-    parser = argparse.ArgumentParser(description='Evaluate CDEC SFT Model')
-    parser.add_argument('--base_model', type=str, default="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+    parser = argparse.ArgumentParser(description='Evaluate CDEC SFT Model with Reasoning')
+    parser.add_argument('--base_model', type=str, default="Qwen/Qwen2.5-1.5B-Instruct",
                       help='Base model name')
     parser.add_argument('--adapter_path', type=str, default=None,
                       help='Path to the LoRA adapter')
@@ -22,25 +26,37 @@ def parse_args():
                       help='Path to the evaluation dataset CSV file')
     parser.add_argument('--output_dir', type=str, default='evaluation_results',
                       help='Directory to save evaluation results')
-    parser.add_argument('--batch_size', type=int, default=128,
-                      help='Batch size for evaluation')
     return parser.parse_args()
 
 def evaluate_predictions(true_labels, predicted_labels):
+    # Filter out invalid predictions for classification report
+    valid_indices = [i for i, pred in enumerate(predicted_labels) if pred != "Invalid"]
+    filtered_true = [true_labels[i] for i in valid_indices]
+    filtered_pred = [predicted_labels[i] for i in valid_indices]
+    
+    # Calculate invalid rate
+    invalid_count = sum(1 for pred in predicted_labels if pred == "Invalid")
+    invalid_rate = invalid_count / len(predicted_labels) if predicted_labels else 0
+    
+    # Generate classification report only on valid predictions
     report = classification_report(
-        true_labels,
-        predicted_labels,
+        filtered_true,
+        filtered_pred,
         target_names=['Not Coreferent', 'Coreferent'],
         output_dict=True
-    )
+    ) if filtered_pred else {"No valid predictions": True}
     
-    cm = confusion_matrix(true_labels, predicted_labels)
+    # Confusion matrix only on valid predictions
+    cm = confusion_matrix(filtered_true, filtered_pred) if filtered_pred else np.zeros((2, 2))
     
     # Calculate additional metrics
-    true_positives = cm[1][1]
-    false_positives = cm[0][1]
-    true_negatives = cm[0][0]
-    false_negatives = cm[1][0]
+    if len(filtered_pred) > 0:
+        true_positives = cm[1][1]
+        false_positives = cm[0][1]
+        true_negatives = cm[0][0]
+        false_negatives = cm[1][0]
+    else:
+        true_positives = false_positives = true_negatives = false_negatives = 0
     
     return {
         'classification_report': report,
@@ -49,7 +65,10 @@ def evaluate_predictions(true_labels, predicted_labels):
             'true_positives': int(true_positives),
             'false_positives': int(false_positives),
             'true_negatives': int(true_negatives),
-            'false_negatives': int(false_negatives)
+            'false_negatives': int(false_negatives),
+            'invalid_count': invalid_count,
+            'invalid_rate': invalid_rate,
+            'total_samples': len(predicted_labels)
         }
     }
 
@@ -68,71 +87,68 @@ def main():
     args = parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # Load model and tokenizer
-    print(f"Loading base model: {args.base_model}")
-    model = AutoModelForCausalLM.from_pretrained(
-        args.base_model,
-        trust_remote_code=True,
-        device_map="auto",
-        attn_implementation="flash_attention_2",
-        torch_dtype=torch.bfloat16,
-    )
+
     tokenizer = AutoTokenizer.from_pretrained(
         args.base_model,
         trust_remote_code=True
     )
     
-    # Load LoRA adapter
-    if args.adapter_path is not None:
-        print(f"Loading adapter from: {args.adapter_path}")
-        model = PeftModel.from_pretrained(model, args.adapter_path)
+    # # Load LoRA adapter
+    # if args.adapter_path is not None:
+    #     print(f"Loading adapter from: {args.adapter_path}")
+    #     model = PeftModel.from_pretrained(model, args.adapter_path)
     
     # Load test data
     print("Loading test data...")
     test_df = pd.read_csv(args.eval_path)
     
     # sample for testing
-    test_df = test_df.sample(frac=0.01)
+    test_df = test_df.sample(frac=0.1)
     
     # Generate predictions
     print("Generating predictions...")
-    predictions = []
     true_labels = test_df['label'].tolist()
     
-    model.eval()
-    with torch.no_grad():
-        # Process data in batches
-        for i in tqdm(range(0, len(test_df), args.batch_size)):
-            batch_df = test_df.iloc[i:i + args.batch_size]
-            batch_messages = [generate_coreference_message_qwen_reason(row) for _, row in batch_df.iterrows()]
-            batch_prompts = [tokenizer.apply_chat_template(msgs[:-1], tokenize=False, add_generation_prompt=True) 
-                           for msgs in batch_messages]
-            
-            # Tokenize all prompts in the batch
-            batch_inputs = tokenizer(
-                batch_prompts, 
-                return_tensors="pt", 
-                padding=True, 
-                padding_side="left",
-                truncation=True
-            ).to(device)
-            
-            # Generate outputs for the entire batch
-            outputs = model.generate(
-                **batch_inputs,
-                max_new_tokens=2048,
-                temperature=0.6,
-                pad_token_id=tokenizer.pad_token_id
-            )
-            
-            # Decode all outputs in the batch
-            responses = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-            
-            # Process each response in the batch
-            for response in responses:
-                answer = response.split("</think>")[-1].strip()
-                prediction = process_model_output(answer)
-                predictions.append(prediction)
+    messages = test_df.apply(lambda row: generate_coreference_message_qwen_reason(row)[:-1], axis=1)
+    prompts = [tokenizer.apply_chat_template(
+        msg, 
+        tokenize=False,
+        add_generation_prompt=True
+    ) for msg in messages]
+
+    
+    # Load model and tokenizer
+    print(f"Loading base model: {args.base_model}")
+    
+    llm = LLM(
+        model=args.base_model,
+        enable_lora=True if args.adapter_path is not None else False
+    )
+
+    sampling_params = SamplingParams(
+        temperature=0.6,
+        top_p=0.95,
+        max_tokens=1024
+    )
+
+    outputs = llm.generate(
+        prompts,
+        sampling_params,
+        lora_request=LoRARequest("trained_lora", 1, lora_path=args.adapter_path) if args.adapter_path is not None else None
+    )
+    
+    predictions = []
+    pattern = r'<answer>(.*?)</answer>'
+    
+    for output in outputs:
+        generated_text = output.outputs[0].text
+        if len(generated_text.split('<answer>')) >= 2:
+            answer = generated_text.split('<answer>')[1]
+            prediction = process_model_output(answer)
+        else:
+            prediction = "Invalid"
+        
+        predictions.append(prediction)
     
     # Calculate metrics
     results = evaluate_predictions(true_labels, predictions)
@@ -154,10 +170,16 @@ def main():
     print("\n=== Evaluation Results ===")
     print(f"Model: {args.base_model}")
     print(f"Adapter: {args.adapter_path}")
-    print("\nMetrics for Coreferent class:")
-    print(f"Precision: {results['classification_report']['Coreferent']['precision']:.3f}")
-    print(f"Recall: {results['classification_report']['Coreferent']['recall']:.3f}")
-    print(f"F1-Score: {results['classification_report']['Coreferent']['f1-score']:.3f}")
+    print(f"\nInvalid predictions: {results['additional_metrics']['invalid_count']} ({results['additional_metrics']['invalid_rate']:.2%})")
+    
+    if "No valid predictions" not in results['classification_report']:
+        print("\nMetrics for Coreferent class:")
+        print(f"Precision: {results['classification_report']['Coreferent']['precision']:.3f}")
+        print(f"Recall: {results['classification_report']['Coreferent']['recall']:.3f}")
+        print(f"F1-Score: {results['classification_report']['Coreferent']['f1-score']:.3f}")
+    else:
+        print("\nNo valid predictions to calculate metrics")
+    
     print(f"\nResults saved to: {results_file}")
     print("=" * 30)
 

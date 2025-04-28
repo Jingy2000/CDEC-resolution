@@ -118,7 +118,7 @@ Respond in the following format:
     return messages
 
 
-def generate_coreference_message_qwen_reason(row, system_prompt: str | None = None):
+def generate_coreference_message_qwen_reason(row, system_prompt: str | None = None) -> list[dict]:
     sentence1 = row['sentence1']
     sentence2 = row['sentence2']
     trigger1 = row['e1_trigger']

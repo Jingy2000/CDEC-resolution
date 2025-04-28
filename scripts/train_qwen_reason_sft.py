@@ -39,86 +39,87 @@ tokenizer = AutoTokenizer.from_pretrained(
     trust_remote_code=True,
 )
 
-# # This will prevent load logits into GPU which will cause the OOM error
-# def preprocess_logits_for_metrics(logits, labels):
-#     """
-#     Original Trainer may have a memory leak. 
-#     This is a workaround to avoid storing too many tensors that are not needed.
-#     """
-#     pred_ids = torch.argmax(logits, dim=-1)
-#     return pred_ids, labels
+# This will prevent load logits into GPU which will cause the OOM error
+def preprocess_logits_for_metrics(logits, labels):
+    """
+    Original Trainer may have a memory leak. 
+    This is a workaround to avoid storing too many tensors that are not needed.
+    """
+    shift_logits = logits[..., :-1, :].contiguous()
+    pred_ids = shift_logits.argmax(dim=-1)
+    return pred_ids, labels
 
-# def compute_metrics(eval_pred: EvalPrediction) -> Dict[str, float]:
-#     """
-#     Compute metrics for the evaluation predictions.
-#     This function decodes the prediction tokens and looks for Yes/No answers after the thinking process.
+def compute_metrics(eval_pred: EvalPrediction) -> Dict[str, float]:
+    """
+    Compute metrics for the evaluation predictions.
+    This function decodes the prediction tokens and looks for Yes/No answers after the thinking process.
     
-#     Args:
-#         eval_pred: Evaluation predictions from the model
+    Args:
+        eval_pred: Evaluation predictions from the model
         
-#     Returns:
-#         Dictionary of metrics including accuracy and ratio of invalid predictions
-#     """
-#     # Get predictions and references
-#     token_predictions = eval_pred.predictions[0]
-#     labels = eval_pred.label_ids
+    Returns:
+        Dictionary of metrics including accuracy and ratio of invalid predictions
+    """
+    # Get predictions and references
+    token_predictions = eval_pred.predictions[0]
+    labels = eval_pred.label_ids
     
-#     pred_answers = []
-#     true_answers = []
+    pred_answers = []
+    true_answers = []
     
-#     # Process each sequence in the batch
-#     for pred_seq, label_seq in zip(token_predictions, labels):
-#         # Filter out padding tokens
-#         valid_pred_tokens = pred_seq[pred_seq != -100]
-#         # Decode the entire prediction sequence
-#         decoded_pred = tokenizer.decode(valid_pred_tokens)
+    # Process each sequence in the batch
+    for pred_seq, label_seq in zip(token_predictions, labels):
+        # Filter out padding tokens
+        valid_pred_tokens = pred_seq[pred_seq != -100]
+        # Decode the entire prediction sequence
+        decoded_pred = tokenizer.decode(valid_pred_tokens)
         
-#         # Find the thinking process
-#         parts = decoded_pred.split("</think>")
+        # Find the thinking process
+        parts = decoded_pred.split("</think>")
         
-#         if len(parts) > 1:
-#             # Get the text after the last </think> tag
-#             answer_text = parts[-1].lower().strip()
+        if len(parts) > 1:
+            # Get the text after the last </think> tag
+            answer_text = parts[-1].lower().strip()
             
-#             # Look for Yes/No in the answer portion
-#             if "yes" in answer_text:
-#                 pred_answer = 1
-#             elif "no" in answer_text:
-#                 pred_answer = 0
-#             else:
-#                 # Neither Yes nor No found clearly
-#                 pred_answer = -1
-#         else:
-#             # No thinking token found
-#             pred_answer = -1
+            # Look for Yes/No in the answer portion
+            if "yes" in answer_text:
+                pred_answer = 1
+            elif "no" in answer_text:
+                pred_answer = 0
+            else:
+                # Neither Yes nor No found clearly
+                pred_answer = -1
+        else:
+            # No thinking token found
+            pred_answer = -1
         
-#         # Process label to find true answer
-#         valid_indices = label_seq != -100
-#         if np.any(valid_indices):
-#             valid_labels = label_seq[valid_indices]
-#             # Decode the valid label tokens
-#             decoded_label = tokenizer.decode(valid_labels)
+        # Process label to find true answer
+        valid_indices = label_seq != -100
+        if np.any(valid_indices):
+            valid_labels = label_seq[valid_indices]
+            # Decode the valid label tokens
+            decoded_label = tokenizer.decode(valid_labels)
             
-#             # Look for Yes/No in the label
-#             if "yes" in decoded_label.lower().split():
-#                 label_answer = 1
-#             else:
-#                 label_answer = 0
+            # Look for Yes/No in the label
+            if "yes" in decoded_label.lower().split():
+                label_answer = 1
+            else:
+                label_answer = 0
             
-#             pred_answers.append(pred_answer)
-#             true_answers.append(label_answer)
+            pred_answers.append(pred_answer)
+            true_answers.append(label_answer)
     
-#     # Convert to numpy arrays
-#     pred_answers = np.array(pred_answers)
-#     true_answers = np.array(true_answers)
+    # Convert to numpy arrays
+    pred_answers = np.array(pred_answers)
+    true_answers = np.array(true_answers)
     
-#     # Calculate metrics
-#     accuracy = accuracy_score(true_answers, pred_answers)
+    # Calculate metrics
+    accuracy = accuracy_score(true_answers, pred_answers)
     
-#     return {
-#         "accuracy": float(accuracy),
-#         "num_invalid": float(np.sum(pred_answers == -1) / len(pred_answers))
-#     }
+    return {
+        "accuracy": float(accuracy),
+        "num_invalid": float(np.sum(pred_answers == -1) / len(pred_answers))
+    }
 
 def main():
     args = parse_args()
@@ -188,7 +189,7 @@ def main():
     
     # Training arguments
     training_args = SFTConfig(
-        output_dir=f"models/{args.model_name}",
+        output_dir=f"models/reason/{args.model_name}",
         num_train_epochs=args.num_epochs,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=4,
@@ -227,8 +228,8 @@ def main():
         data_collator=collator,
         processing_class=tokenizer,
         # callbacks=[],
-        # compute_metrics=compute_metrics,
-        # preprocess_logits_for_metrics=preprocess_logits_for_metrics,
+        compute_metrics=compute_metrics,
+        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
     )
     
     # Train

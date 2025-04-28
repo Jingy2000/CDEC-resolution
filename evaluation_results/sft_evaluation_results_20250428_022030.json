@@ -1,0 +1,54 @@
+{
+    "classification_report": {
+        "Not Coreferent": {
+            "precision": 0.9378317476214322,
+            "recall": 0.9732882941405743,
+            "f1-score": 0.955231112527893,
+            "support": 38485.0
+        },
+        "Coreferent": {
+            "precision": 0.550109409190372,
+            "recall": 0.336096256684492,
+            "f1-score": 0.41726141078838175,
+            "support": 3740.0
+        },
+        "accuracy": 0.916850207223209,
+        "macro avg": {
+            "precision": 0.7439705784059021,
+            "recall": 0.6546922754125332,
+            "f1-score": 0.6862462616581373,
+            "support": 42225.0
+        },
+        "weighted avg": {
+            "precision": 0.9034899703394388,
+            "recall": 0.916850207223209,
+            "f1-score": 0.9075814574774307,
+            "support": 42225.0
+        }
+    },
+    "confusion_matrix": [
+        [
+            37457,
+            1028
+        ],
+        [
+            2483,
+            1257
+        ]
+    ],
+    "additional_metrics": {
+        "true_positives": 1257,
+        "false_positives": 1028,
+        "true_negatives": 37457,
+        "false_negatives": 2483,
+        "invalid_count": 728,
+        "invalid_rate": 0.016948757944730285,
+        "total_samples": 42953
+    },
+    "timestamp": "2025-04-28 02:20:30",
+    "model_info": {
+        "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "adapter_path": "models/Qwen/Qwen2.5-1.5B-Instruct/final_model"
+    },
+    "tag": "reason"
+}
