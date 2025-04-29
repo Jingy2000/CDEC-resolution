@@ -6,8 +6,8 @@ import pandas as pd
 from trl import GRPOConfig, GRPOTrainer
 
 
-max_seq_length = 2048 # Can increase for longer reasoning traces
-lora_rank = 32 # Larger rank = smarter, but slower
+max_seq_length = 1024 # Can increase for longer reasoning traces
+lora_rank = 16 # Larger rank = smarter, but slower
 
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name = "Qwen/Qwen2.5-1.5B-Instruct",
@@ -32,7 +32,7 @@ model = FastLanguageModel.get_peft_model(
 
 train_df = train_df = pd.read_csv('data/balanced_train_set.csv')
 
-train_df = train_df.sample(frac=0.001)
+train_df = train_df.sample(frac=0.1)
 
 train_dataset = create_grpo_dataset(train_df)
 
@@ -101,9 +101,9 @@ training_args = GRPOConfig(
     logging_steps = 1,
     bf16 = is_bfloat16_supported(),
     fp16 = not is_bfloat16_supported(),
-    per_device_train_batch_size = 1,
+    per_device_train_batch_size = 4,
     gradient_accumulation_steps = 3, # Increase to 4 for smoother training
-    num_generations = 8, # Decrease if out of memory
+    num_generations = 4, # Decrease if out of memory
     max_prompt_length = 256,
     max_completion_length = 512,
     # num_train_epochs = 1, # Set to 1 for a full training run
