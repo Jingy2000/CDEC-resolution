@@ -4,9 +4,10 @@ This project implements advanced transformer-based approaches for cross-document
 
 ## Project Overview
 
-- Developed and evaluated two transformer-based approaches:
-  1. **Fine-tuned BERT Classification Model**: Using BERT with a classification head to identify event coreference
+- Developed and evaluated three transformer-based approaches:
+  1. **Fine-tuned BERT Classification Model**: Using ModernBERT with a classification head to identify event coreference
   2. **Instruction-tuned Language Model**: Leveraging Qwen2.5 with specialized instructions for the coreference task
+  3. **Reasoning-based Approach**: Using GRPO (Group Relative Policy Optimization) to train models for reasoning-based coreference resolution
 - Comprehensive evaluation metrics and analysis
 - Scalable pipeline for both training and inference
 
@@ -18,20 +19,28 @@ This project implements advanced transformer-based approaches for cross-document
 - Binary classification head determines coreference relation
 
 ### Qwen Instruction Approach
-- Leverages `Qwen2.5-0.5B-Instruct` capabilities
+- Leverages `Qwen2.5-1.5B-Instruct` capabilities
 - Structures the task as an instruction-following problem
 - Employs parameter-efficient fine-tuning (LoRA)
 
+### Reasoning-based Approach
+- Uses `Qwen2.5-1.5B-Instruct` as the base model
+- Implements GRPO (Guided Reinforcement with Preference Optimization) training
+- Explicitly generates reasoning steps before making coreference decisions
+- Optimizes for multiple reward components including reasoning quality and final prediction accuracy
+
 ## Results
-   
 
-| Model | Precision | Recall | F1 Score |
-|-------|-----------|--------|----------|
-| ModernBERT Classifier | 0.858 | 0.654 | 0.742 |
-| Qwen2.5-0.5B-Instruct | 0.828 | 0.464 | 0.594 |
+Results from our evaluation on the test dataset:
 
-The encoder-based model achieved superior performance, demonstrating that ModernBERT is better at detecting actual event coreference relationships, whereas Qwen tends to miss many coreferent pairs. One possible reason for this difference is that ModernBERT is encoder based model and trained on a lot of language understanding tasks, meaning it can fully leverage contextual information from both sentences. In contrast, Qwen is a decoder-only model, which might lead it to focus more on typical language patterns rather than deeply understanding event semantics.
+| Training Approach | Model | Precision | Recall | F1-score | Accuracy | Invalid Rate |
+|-------------------|-------|-----------|--------|----------|----------|--------------|
+| Direct Label SFT | ModernBERT | 0.7740 | 0.8316 | 0.8018 | 0.9632 | N/A |
+| Direct Label SFT | Qwen2.5-1.5B-Instruct (SFT) | 0.8203 | 0.7936 | 0.8067 | 0.9660 | N/A |
+| Reasoning-based | Qwen2.5-1.5B-Instruct (GRPO) | 0.7784 | 0.6385 | 0.7016 | 0.9511 | 3.04% |
+| DeepSeek | deepseek_r1 | 0.9401 | 0.7822 | 0.8539 | 0.8705 | N/A |
 
+The ModernBERT classifier and Qwen SFT models achieved the highest F1-scores among our trained models, with DeepSeek showing even better performance as an external reference. The reasoning-based approach with GRPO showed promising results with a low invalid output rate, demonstrating the potential of incorporating explicit reasoning steps.
 
 ## Getting Started
 
@@ -46,6 +55,7 @@ data/
   ├── train_set.csv
   ├── dev_set.csv
   └── test_set.csv
+  └── balanced_train_set.csv
 ```
 
 ### Data Format
@@ -61,22 +71,32 @@ The dataset should include pairs of sentences with event triggers and their core
 ### Training
 
 ```bash
-# Train BERT model
-python scripts/train_bert.py \
+# Train ModernBERT model
+python scripts/train_modernbert.py \
   --model_name answerdotai/ModernBERT-base \
   --data_dir data \
-  --output_dir models/bert \
+  --output_dir models/modernbert \
   --epochs 3 \
   --train_batch_size 64 \
   --learning_rate 1e-5
 ```
 
 ```bash
-# Train Qwen model with LoRA
-python scripts/train_sft.py \
-  --model_name Qwen/Qwen2.5-0.5B-Instruct \
+# Train Qwen model with LoRA (direct label SFT)
+python scripts/train_qwen_instruct_sft.py \
+  --model_name Qwen/Qwen2.5-1.5B-Instruct \
   --data_dir data \
-  --output_dir models/qwen \
+  --output_dir models/qwen_instruct \
+  --num_epochs 1 \
+  --batch_size 4
+```
+
+```bash
+# Train Qwen reasoning model with GRPO
+python scripts/train_qwen_reason_grpo.py \
+  --model_name Qwen/Qwen2.5-1.5B-Instruct \
+  --data_dir data \
+  --output_dir models/qwen_reason_grpo \
   --num_epochs 1 \
   --batch_size 4
 ```
@@ -84,32 +104,16 @@ python scripts/train_sft.py \
 ### Evaluation
 
 ```bash
-# Evaluate BERT model
-python scripts/eval_bert.py --model_path models/bert/final_model --data_dir data
+# Evaluate ModernBERT model
+python scripts/eval_modernbert.py --model_path models/modernbert/checkpoint-1000-best --data_dir data
 
-# Evaluate Qwen model
-python scripts/eval_sft.py --base_model Qwen/Qwen2.5-0.5B-Instruct --adapter_path models/qwen/final --data_dir data
+# Evaluate Qwen SFT model
+python scripts/eval_qwen_instruct.py --base_model Qwen/Qwen2.5-1.5B-Instruct --adapter_path models/qwen_instruct/final --data_dir data
+
+# Evaluate Qwen GRPO reasoning model
+python scripts/eval_qwen_reason.py --base_model Qwen/Qwen2.5-1.5B-Instruct --adapter_path models/qwen_reason_grpo/final --data_dir data
+
+# Analyze reasoning outputs
+python scripts/eval_reasoning_results.py --results_file results/qwen_reason_grpo_results.jsonl
 ```
 
-
-## Project Structure
-
-```
-.
-├── data/                   # Data directory
-├── models/                 # Saved models directory
-├── scripts/               
-│   ├── train_bert.py      # Training script for BERT
-│   ├── train_sft.py       # Training script for Qwen
-│   ├── eval_bert.py       # Evaluation script for BERT
-│   └── eval_sft.py        # Evaluation script for Qwen
-└── src/
-    ├── data_bert.py       # BERT data processing
-    ├── data_sft.py        # Qwen data processing
-    └── utils.py           # Utility functions
-```
-
-
-TODO:
-1. SFT on reasoning data.
-  1. 
