@@ -34,6 +34,7 @@
                 "--base_model", "Qwen/Qwen2.5-1.5B-Instruct",
                 "--output_dir", "evaluation_results",
                 // "--adapter_path", "models/Qwen/Qwen2.5-1.5B-Instruct/final_model"
+                "--adapter_path", "models/grpo/checkpoint-1000"
             ]
         },
         {

@@ -26,6 +26,8 @@ def parse_args():
                       help='Path to the evaluation dataset CSV file')
     parser.add_argument('--output_dir', type=str, default='evaluation_results',
                       help='Directory to save evaluation results')
+    parser.add_argument('--tag', type=str, default='grpo',
+                      help='Tag')
     return parser.parse_args()
 
 def evaluate_predictions(true_labels, predicted_labels):
@@ -103,7 +105,7 @@ def main():
     test_df = pd.read_csv(args.eval_path)
     
     # sample for testing
-    test_df = test_df.sample(frac=0.1)
+    # test_df = test_df.sample(frac=0.01)
     
     # Generate predictions
     print("Generating predictions...")
@@ -122,7 +124,8 @@ def main():
     
     llm = LLM(
         model=args.base_model,
-        enable_lora=True if args.adapter_path is not None else False
+        enable_lora=True if args.adapter_path is not None else False,
+        max_lora_rank=32
     )
 
     sampling_params = SamplingParams(
@@ -134,7 +137,7 @@ def main():
     outputs = llm.generate(
         prompts,
         sampling_params,
-        lora_request=LoRARequest("trained_lora", 1, lora_path=args.adapter_path) if args.adapter_path is not None else None
+        lora_request=LoRARequest("trained_lora", 1, lora_path=args.adapter_path) if args.adapter_path is not None else None,
     )
     
     predictions = []
@@ -157,6 +160,8 @@ def main():
         'base_model': args.base_model,
         'adapter_path': args.adapter_path
     }
+    
+    results['tag'] = args.tag
     
     # Save results
     os.makedirs(args.output_dir, exist_ok=True)

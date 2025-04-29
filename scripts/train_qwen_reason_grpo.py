@@ -24,7 +24,7 @@ model = FastLanguageModel.get_peft_model(
     target_modules = [
         "q_proj", "k_proj", "v_proj", "o_proj",
         "gate_proj", "up_proj", "down_proj",
-    ], # Remove QKVO if out of memory
+    ], # Remove QKVO if out of memory   
     lora_alpha = lora_rank,
     use_gradient_checkpointing = "unsloth", # Enable long context finetuning
     random_state = 3407,
