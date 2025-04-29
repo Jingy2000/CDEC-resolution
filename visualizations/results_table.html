@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-family: Arial, sans-serif;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: center;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .model-group {
+            background-color: #e6f7ff;
+            font-weight: bold;
+        }
+        .best-value {
+            font-weight: bold;
+            color: #008800;
+        }
+        .worst-value {
+            color: #cc0000;
+        }
+    </style>
+</head>
+<body>
+    <table>
+        <thead>
+            <tr>
+                <th>Training Approach</th>
+                <th>Model</th>
+                <th>Coreferent<br>Precision</th>
+                <th>Coreferent<br>Recall</th>
+                <th>Coreferent<br>F1-score</th>
+                <th>Overall<br>Accuracy</th>
+                <th>Invalid<br>Rate</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- SFT Only - Label -->
+            <tr class="model-group">
+                <td colspan="7">Direct Label SFT</td>
+            </tr>
+            <tr>
+                <td rowspan="3">Direct Label SFT</td>
+                <td>ModernBERT (checkpoint-1000-best)</td>
+                <td>0.7740</td>
+                <td class="best-value">0.8316</td>
+                <td>0.8018</td>
+                <td>0.9632</td>
+                <td>N/A</td>
+            </tr>
+            <tr>
+                <td>Qwen2.5-1.5B-Instruct (baseline)</td>
+                <td class="best-value">0.8850</td>
+                <td>0.4745</td>
+                <td>0.6178</td>
+                <td>0.9475</td>
+                <td>N/A</td>
+            </tr>
+            <tr>
+                <td>Qwen2.5-1.5B-Instruct (SFT)</td>
+                <td>0.8203</td>
+                <td>0.7936</td>
+                <td class="best-value">0.8067</td>
+                <td class="best-value">0.9660</td>
+                <td>N/A</td>
+            </tr>
+            
+            <!-- Reasoning Models -->
+            <tr class="model-group">
+                <td colspan="7">Reasoning Models</td>
+            </tr>
+            <tr>
+                <td rowspan="4">Reasoning-based</td>
+                <td>DeepSeek-R1-Distill-Qwen-1.5B</td>
+                <td>0.4661</td>
+                <td>0.4755</td>
+                <td>0.4708</td>
+                <td>0.9044</td>
+                <td>N/A</td>
+            </tr>
+            <tr>
+                <td>Qwen2.5-1.5B-Instruct-reason-baseline</td>
+                <td>0.8214</td>
+                <td class="worst-value">0.3485</td>
+                <td>0.4894</td>
+                <td>0.9389</td>
+                <td class="worst-value">26.87%</td>
+            </tr>
+            <tr>
+                <td>Qwen2.5-1.5B-Instruct (SFT on reasoning)</td>
+                <td class="worst-value">0.5501</td>
+                <td>0.3361</td>
+                <td class="worst-value">0.4173</td>
+                <td class="worst-value">0.9169</td>
+                <td>1.69%</td>
+            </tr>
+            <tr>
+                <td>Qwen2.5-1.5B-Instruct (GRPO)</td>
+                <td>0.7784</td>
+                <td>0.6385</td>
+                <td>0.7016</td>
+                <td>0.9511</td>
+                <td class="best-value">3.04%</td>
+            </tr>
+            
+            <!-- DeepSeek Non-baseline -->
+            <tr class="model-group">
+                <td colspan="7">Other Models</td>
+            </tr>
+            <tr>
+                <td>DeepSeek</td>
+                <td>deepseek_r1</td>
+                <td>0.9401</td>
+                <td>0.7822</td>
+                <td>0.8539</td>
+                <td>0.8705</td>
+                <td>N/A</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
