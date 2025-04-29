@@ -22,7 +22,7 @@ def parse_args():
                         help='DPI for saved figures')
     parser.add_argument('--exclude_components', type=str, nargs='+', default=['int_reward_func'],
                         help='Reward components to exclude from visualization')
-    parser.add_argument('--figsize_main', type=float, nargs=2, default=[16, 14],
+    parser.add_argument('--figsize_main', type=float, nargs=2, default=[24, 14],
                         help='Figure size for main metrics plot (width, height)')
     parser.add_argument('--figsize_reward', type=float, nargs=2, default=[14, 8],
                         help='Figure size for reward composition plot (width, height)')

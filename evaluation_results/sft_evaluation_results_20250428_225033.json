@@ -1,0 +1,54 @@
+{
+    "classification_report": {
+        "Not Coreferent": {
+            "precision": 0.9620605905662789,
+            "recall": 0.9822505285688183,
+            "f1-score": 0.9720507323121432,
+            "support": 38311.0
+        },
+        "Coreferent": {
+            "precision": 0.772651287194918,
+            "recall": 0.6089591567852437,
+            "f1-score": 0.6811081638667845,
+            "support": 3795.0
+        },
+        "accuracy": 0.9486058993967605,
+        "macro avg": {
+            "precision": 0.8673559388805985,
+            "recall": 0.795604842677031,
+            "f1-score": 0.8265794480894639,
+            "support": 42106.0
+        },
+        "weighted avg": {
+            "precision": 0.9449891920412632,
+            "recall": 0.9486058993967605,
+            "f1-score": 0.945828173834726,
+            "support": 42106.0
+        }
+    },
+    "confusion_matrix": [
+        [
+            37631,
+            680
+        ],
+        [
+            1484,
+            2311
+        ]
+    ],
+    "additional_metrics": {
+        "true_positives": 2311,
+        "false_positives": 680,
+        "true_negatives": 37631,
+        "false_negatives": 1484,
+        "invalid_count": 847,
+        "invalid_rate": 0.01971922799338812,
+        "total_samples": 42953
+    },
+    "timestamp": "2025-04-28 22:50:33",
+    "model_info": {
+        "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "adapter_path": "models/grpo/checkpoint-500"
+    },
+    "tag": "grpo"
+}
